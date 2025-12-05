@@ -5,12 +5,14 @@ import { dataManager } from '../services/dataManager';
 import { HealthDataType } from '../types';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Bar } from 'recharts';
 import dayjs from 'dayjs';
+import { useLocale } from '../i18n';
 
 interface AnimalHealthChartProps {
   animalId: string;
 }
 
 export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) {
+  const { translate } = useLocale();
   const [selectedDataType, setSelectedDataType] = useState<HealthDataType>(HealthDataType.HEART_RATE);
   const [timeRange, setTimeRange] = useState<number>(24); // 小时
   const [chartData, setChartData] = useState<any[]>([]);
@@ -51,19 +53,19 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
   };
 
   const dataTypeOptions = [
-    { label: '心率', value: HealthDataType.HEART_RATE },
-    { label: '体温', value: HealthDataType.TEMPERATURE },
-    { label: '活动量', value: HealthDataType.ACTIVITY },
-    { label: '睡眠质量', value: HealthDataType.SLEEP },
-    { label: '压力状态', value: HealthDataType.STRESS },
+    { label: translate('心率', 'Heart Rate'), value: HealthDataType.HEART_RATE },
+    { label: translate('体温', 'Temperature'), value: HealthDataType.TEMPERATURE },
+    { label: translate('活动量', 'Activity'), value: HealthDataType.ACTIVITY },
+    { label: translate('睡眠质量', 'Sleep Quality'), value: HealthDataType.SLEEP },
+    { label: translate('压力状态', 'Stress'), value: HealthDataType.STRESS },
   ];
 
   const timeRangeOptions = [
-    { label: '最近1小时', value: 1 },
-    { label: '最近6小时', value: 6 },
-    { label: '最近24小时', value: 24 },
-    { label: '最近3天', value: 72 },
-    { label: '最近7天', value: 168 },
+    { label: translate('最近1小时', 'Last 1h'), value: 1 },
+    { label: translate('最近6小时', 'Last 6h'), value: 6 },
+    { label: translate('最近24小时', 'Last 24h'), value: 24 },
+    { label: translate('最近3天', 'Last 3d'), value: 72 },
+    { label: translate('最近7天', 'Last 7d'), value: 168 },
   ];
 
   // 准备综合图表数据（显示多个指标）
@@ -95,7 +97,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
         <Col span={6}>
           <Card>
             <Statistic
-              title="健康评分"
+              title={translate('健康评分', 'Health Score')}
               value={healthStatus?.latestHealthScore.toFixed(1) || 0}
               suffix="/ 100"
               valueStyle={{ color: getHealthScoreColor(healthStatus?.latestHealthScore || 0) }}
@@ -105,7 +107,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
         <Col span={6}>
           <Card>
             <Statistic
-              title="心率"
+              title={translate('心率', 'Heart Rate')}
               value={latestData.heartRate?.value.toFixed(0) || '-'}
               suffix={latestData.heartRate?.unit || 'bpm'}
             />
@@ -114,7 +116,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
         <Col span={6}>
           <Card>
             <Statistic
-              title="体温"
+              title={translate('体温', 'Temperature')}
               value={latestData.temperature?.value.toFixed(1) || '-'}
               suffix={latestData.temperature?.unit || '°C'}
             />
@@ -123,7 +125,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
         <Col span={6}>
           <Card>
             <Statistic
-              title="活动量"
+              title={translate('活动量', 'Activity')}
               value={latestData.activity?.value.toFixed(0) || '-'}
               suffix={latestData.activity?.unit || '%'}
             />
@@ -132,10 +134,10 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
       </Row>
 
       <Card
-        title="数据筛选"
+        title={translate('数据筛选', 'Data Filters')}
         extra={
           <Button icon={<ReloadOutlined />} onClick={updateChartData}>
-            刷新
+            {translate('刷新', 'Refresh')}
           </Button>
         }
         style={{ marginBottom: 16 }}
@@ -158,7 +160,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
 
       <Row gutter={16}>
         <Col span={24}>
-          <Card title={`${dataTypeOptions.find(o => o.value === selectedDataType)?.label}趋势`} style={{ marginBottom: 16 }}>
+          <Card title={`${dataTypeOptions.find(o => o.value === selectedDataType)?.label}${translate('趋势', ' Trend')}`} style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -203,7 +205,7 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
               type="monotone"
               dataKey="heartRate"
               stroke="#ff4d4f"
-              name="心率 (bpm)"
+              name={translate('心率 (bpm)', 'Heart Rate (bpm)')}
               strokeWidth={2}
             />
             <Line
@@ -211,14 +213,14 @@ export default function AnimalHealthChart({ animalId }: AnimalHealthChartProps) 
               type="monotone"
               dataKey="temperature"
               stroke="#52c41a"
-              name="体温 (°C)"
+              name={translate('体温 (°C)', 'Temperature (°C)')}
               strokeWidth={2}
             />
             <Bar
               yAxisId="left"
               dataKey="activity"
               fill="#1890ff"
-              name="活动量 (%)"
+              name={translate('活动量 (%)', 'Activity (%)')}
             />
           </ComposedChart>
         </ResponsiveContainer>

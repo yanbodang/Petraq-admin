@@ -12,6 +12,7 @@ type LocaleContextValue = {
   setLanguage: (lang: AppLanguage) => void;
   antdLocale: typeof zhCN | typeof enUS;
   t: (key: string) => string;
+  translate: (zh: string, enText: string) => string;
   languageOptions: Array<{ value: AppLanguage; label: string }>;
 };
 
@@ -54,6 +55,7 @@ const LocaleContext = createContext<LocaleContextValue>({
   setLanguage: () => {},
   antdLocale: zhCN,
   t: (key: string) => key,
+  translate: (zh: string, enText: string) => (enText ? zh : zh),
   languageOptions: [
     { value: 'zh-CN', label: languageConfig['zh-CN'].label },
     { value: 'en-US', label: languageConfig['en-US'].label },
@@ -86,6 +88,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       setLanguage,
       antdLocale: languageConfig[language].antd,
       t,
+      translate: (zh: string, enText: string) => (language === 'en-US' ? enText : zh),
       languageOptions: [
         { value: 'zh-CN', label: languageConfig['zh-CN'].label },
         { value: 'en-US', label: languageConfig['en-US'].label },

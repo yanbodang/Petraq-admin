@@ -11,8 +11,10 @@ import { dataManager } from '../services/dataManager';
 import { SystemStats, User, SyncRecord } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
+import { useLocale } from '../i18n';
 
 export default function Dashboard() {
+  const { translate } = useLocale();
   const [stats, setStats] = useState<SystemStats>(dataManager.getSystemStats());
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const [recentSyncs, setRecentSyncs] = useState<SyncRecord[]>([]);
@@ -44,13 +46,13 @@ export default function Dashboard() {
 
   const syncColumns = [
     {
-      title: '时间',
+      title: translate('时间', 'Time'),
       dataIndex: 'startTime',
       key: 'startTime',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
-      title: '用户',
+      title: translate('用户', 'User'),
       dataIndex: 'userId',
       key: 'userId',
       render: (id: string) => {
@@ -59,22 +61,22 @@ export default function Dashboard() {
       },
     },
     {
-      title: '类型',
+      title: translate('类型', 'Type'),
       dataIndex: 'syncType',
       key: 'syncType',
     },
     {
-      title: '方向',
+      title: translate('方向', 'Direction'),
       dataIndex: 'syncDirection',
       key: 'syncDirection',
       render: (dir: string) => (
         <Tag color={dir === 'upload' ? 'blue' : 'green'}>
-          {dir === 'upload' ? '上传' : '下载'}
+          {dir === 'upload' ? translate('上传', 'Upload') : translate('下载', 'Download')}
         </Tag>
       ),
     },
     {
-      title: '状态',
+      title: translate('状态', 'Status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -84,11 +86,17 @@ export default function Dashboard() {
           进行中: 'blue',
           已取消: 'default',
         };
-        return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+        const statusLabel: Record<string, string> = {
+          成功: translate('成功', 'Success'),
+          失败: translate('失败', 'Failed'),
+          进行中: translate('进行中', 'Running'),
+          已取消: translate('已取消', 'Cancelled'),
+        };
+        return <Tag color={colorMap[status] || 'default'}>{statusLabel[status] || status}</Tag>;
       },
     },
     {
-      title: '记录数',
+      title: translate('记录数', 'Records'),
       dataIndex: 'recordCount',
       key: 'recordCount',
       render: (count: number | undefined) => count || '-',
@@ -97,17 +105,17 @@ export default function Dashboard() {
 
   const userColumns = [
     {
-      title: '用户名',
+      title: translate('用户名', 'Username'),
       dataIndex: 'username',
       key: 'username',
     },
     {
-      title: '邮箱',
+      title: translate('邮箱', 'Email'),
       dataIndex: 'email',
       key: 'email',
     },
     {
-      title: '角色',
+      title: translate('角色', 'Role'),
       dataIndex: 'role',
       key: 'role',
       render: (role: string) => {
@@ -116,11 +124,16 @@ export default function Dashboard() {
           普通用户: 'blue',
           查看者: 'default',
         };
-        return <Tag color={colorMap[role] || 'default'}>{role}</Tag>;
+        const roleLabel: Record<string, string> = {
+          管理员: translate('管理员', 'Admin'),
+          普通用户: translate('普通用户', 'User'),
+          查看者: translate('查看者', 'Viewer'),
+        };
+        return <Tag color={colorMap[role] || 'default'}>{roleLabel[role] || role}</Tag>;
       },
     },
     {
-      title: '状态',
+      title: translate('状态', 'Status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -129,11 +142,16 @@ export default function Dashboard() {
           禁用: 'red',
           待激活: 'orange',
         };
-        return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+        const statusLabel: Record<string, string> = {
+          活跃: translate('活跃', 'Active'),
+          禁用: translate('禁用', 'Disabled'),
+          待激活: translate('待激活', 'Pending'),
+        };
+        return <Tag color={colorMap[status] || 'default'}>{statusLabel[status] || status}</Tag>;
       },
     },
     {
-      title: '动物数量',
+      title: translate('动物数量', 'Animals'),
       dataIndex: 'animalCount',
       key: 'animalCount',
       render: (count: number | undefined) => count || 0,
@@ -146,13 +164,13 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2 style={{ marginBottom: 24 }}>系统概览</h2>
+      <h2 style={{ marginBottom: 24 }}>{translate('系统概览', 'System Overview')}</h2>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="总用户数"
+              title={translate('总用户数', 'Total Users')}
               value={stats.totalUsers}
               prefix={<UserOutlined />}
               valueStyle={{ color: '#3f8600' }}
@@ -162,7 +180,7 @@ export default function Dashboard() {
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="活跃用户"
+              title={translate('活跃用户', 'Active Users')}
               value={stats.activeUsers}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#1890ff' }}
@@ -172,7 +190,7 @@ export default function Dashboard() {
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="总动物数"
+              title={translate('总动物数', 'Total Animals')}
               value={stats.totalAnimals}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#722ed1' }}
@@ -182,7 +200,7 @@ export default function Dashboard() {
         <Col xs={24} sm={12} lg={6}>
           <Card>
             <Statistic
-              title="组织数量"
+              title={translate('组织数量', 'Organizations')}
               value={stats.totalOrganizations}
               prefix={<BankOutlined />}
               valueStyle={{ color: '#13c2c2' }}
@@ -193,18 +211,18 @@ export default function Dashboard() {
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} lg={12}>
-          <Card title="今日同步统计">
+          <Card title={translate('今日同步统计', 'Today Sync Stats')}>
             <Row gutter={16}>
               <Col span={12}>
                 <Statistic
-                  title="今日同步"
+                  title={translate('今日同步', 'Today Syncs')}
                   value={stats.todaySyncCount}
                   prefix={<SyncOutlined />}
                 />
               </Col>
               <Col span={12}>
                 <Statistic
-                  title="失败次数"
+                  title={translate('失败次数', 'Failures')}
                   value={stats.failedSyncCount}
                   prefix={<CloseCircleOutlined />}
                   valueStyle={{ color: '#cf1322' }}
@@ -212,7 +230,7 @@ export default function Dashboard() {
               </Col>
             </Row>
             <div style={{ marginTop: 16 }}>
-              <div style={{ marginBottom: 8 }}>同步成功率</div>
+              <div style={{ marginBottom: 8 }}>{translate('同步成功率', 'Sync Success Rate')}</div>
               <Progress
                 percent={parseFloat(successRate)}
                 status={parseFloat(successRate) >= 90 ? 'success' : 'exception'}
@@ -222,7 +240,7 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={12}>
-          <Card title="用户动物分布" style={{ height: 300 }}>
+          <Card title={translate('用户动物分布', 'Animals by User')} style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={userStatsData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -230,7 +248,7 @@ export default function Dashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="animals" fill="#8884d8" name="动物数量" />
+                <Bar dataKey="animals" fill="#8884d8" name={translate('动物数量', 'Animals')} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
