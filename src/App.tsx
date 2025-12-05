@@ -8,8 +8,11 @@ import Organizations from './pages/Organizations';
 import Settings from './pages/Settings';
 
 function App() {
+  // Use repo path as basename in production so routing works on GitHub Pages.
+  const basename = import.meta.env.MODE === 'development' ? '/' : '/Petraq-admin';
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
