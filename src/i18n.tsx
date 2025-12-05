@@ -55,7 +55,7 @@ const LocaleContext = createContext<LocaleContextValue>({
   setLanguage: () => {},
   antdLocale: zhCN,
   t: (key: string) => key,
-  translate: (zh: string, enText: string) => (enText ? zh : zh),
+  translate: (zh: string, _enText: string) => zh,
   languageOptions: [
     { value: 'zh-CN', label: languageConfig['zh-CN'].label },
     { value: 'en-US', label: languageConfig['en-US'].label },

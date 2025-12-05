@@ -6,8 +6,10 @@ import { Animal, User, AnimalHealthStatus } from '../types';
 import dayjs from 'dayjs';
 import AnimalHealthChart from '../components/AnimalHealthChart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { useLocale } from '../i18n';
 
 export default function UserAnimals() {
+  const { translate } = useLocale();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [animals, setAnimals] = useState<Animal[]>([]);
@@ -47,7 +49,7 @@ export default function UserAnimals() {
 
   const handleAdd = () => {
     if (!selectedUserId) {
-      message.warning('请先选择用户');
+      message.warning(translate('请先选择用户', 'Please select user first'));
       return;
     }
     setEditingAnimal(null);
@@ -70,7 +72,7 @@ export default function UserAnimals() {
   const handleDelete = (id: string) => {
     dataManager.removeAnimal(id);
     updateAnimals();
-    message.success('删除成功');
+    message.success(translate('删除成功', 'Deleted'));
   };
 
   const handleViewChart = (animal: Animal) => {
@@ -121,52 +123,52 @@ export default function UserAnimals() {
       dataManager.updateAnimal(updated);
     });
     updateAnimals();
-    message.success('同步成功');
+    message.success(translate('同步成功', 'Sync success'));
   };
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
 
   const columns = [
     {
-      title: '名称',
+      title: translate('名称', 'Name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '类型',
+      title: translate('类型', 'Type'),
       dataIndex: 'type',
       key: 'type',
     },
     {
-      title: '性别',
+      title: translate('性别', 'Gender'),
       dataIndex: 'gender',
       key: 'gender',
     },
     {
-      title: '体重 (kg)',
+      title: translate('体重 (kg)', 'Weight (kg)'),
       dataIndex: 'weight',
       key: 'weight',
       render: (weight: number) => weight.toFixed(1),
     },
     {
-      title: '年龄 (岁)',
+      title: translate('年龄 (岁)', 'Age (years)'),
       dataIndex: 'age',
       key: 'age',
     },
     {
-      title: '创建时间',
+      title: translate('创建时间', 'Created At'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD'),
     },
     {
-      title: '最后同步',
+      title: translate('最后同步', 'Last Sync'),
       dataIndex: 'lastSyncAt',
       key: 'lastSyncAt',
       render: (date: Date | undefined) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : '-',
     },
     {
-      title: '操作',
+      title: translate('操作', 'Actions'),
       key: 'action',
       render: (_: any, record: Animal) => (
         <Space>
@@ -175,14 +177,14 @@ export default function UserAnimals() {
             icon={<LineChartOutlined />}
             onClick={() => handleViewChart(record)}
           >
-            健康数据
+            {translate('健康数据', 'Health Data')}
           </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            编辑
+            {translate('编辑', 'Edit')}
           </Button>
           <Button
             type="link"
@@ -190,7 +192,7 @@ export default function UserAnimals() {
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(record.id)}
           >
-            删除
+            {translate('删除', 'Delete')}
           </Button>
         </Space>
       ),
@@ -300,11 +302,11 @@ export default function UserAnimals() {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>用户动物管理</h2>
+        <h2 style={{ margin: 0 }}>{translate('用户动物管理', 'User Animals')}</h2>
         <Space>
           <Select
             style={{ width: 200 }}
-            placeholder="选择用户"
+            placeholder={translate('选择用户', 'Select user')}
             value={selectedUserId}
             onChange={setSelectedUserId}
             options={users.map((user) => ({
@@ -317,10 +319,10 @@ export default function UserAnimals() {
             onClick={handleSync}
             disabled={!selectedUserId || animals.length === 0}
           >
-            同步数据
+            {translate('同步数据', 'Sync Data')}
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} disabled={!selectedUserId}>
-            添加动物
+            {translate('添加动物', 'Add Animal')}
           </Button>
         </Space>
       </div>
@@ -328,9 +330,9 @@ export default function UserAnimals() {
       {selectedUser && (
         <Card style={{ marginBottom: 16 }}>
           <Space>
-            <span>用户：<strong>{selectedUser.username}</strong></span>
-            <span>邮箱：{selectedUser.email}</span>
-            <span>动物数量：<strong>{animals.length}</strong></span>
+            <span>{translate('用户', 'User')}：<strong>{selectedUser.username}</strong></span>
+            <span>{translate('邮箱', 'Email')}：{selectedUser.email}</span>
+            <span>{translate('动物数量', 'Animals')}：<strong>{animals.length}</strong></span>
           </Space>
         </Card>
       )}
@@ -341,20 +343,20 @@ export default function UserAnimals() {
         items={[
           {
             key: 'list',
-            label: '动物列表',
+            label: translate('动物列表', 'Animal List'),
             children: (
               <Table
                 columns={columns}
                 dataSource={animals}
                 rowKey="id"
                 pagination={{ pageSize: 10 }}
-                locale={{ emptyText: selectedUserId ? '该用户暂无动物数据' : '请先选择用户' }}
+                locale={{ emptyText: selectedUserId ? translate('该用户暂无动物数据', 'No animals for this user') : translate('请先选择用户', 'Please select a user') }}
               />
             ),
           },
           {
             key: 'health',
-            label: '健康统计',
+            label: translate('健康统计', 'Health Stats'),
             children: <HealthStatisticsView
               overallStats={overallStats}
               livestockStats={livestockStats}
@@ -368,27 +370,27 @@ export default function UserAnimals() {
       />
 
       <Modal
-        title={editingAnimal ? '编辑动物' : '添加动物'}
+        title={editingAnimal ? translate('编辑动物', 'Edit Animal') : translate('添加动物', 'Add Animal')}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
-        okText="确定"
-        cancelText="取消"
+        okText={translate('确定', 'Confirm')}
+        cancelText={translate('取消', 'Cancel')}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="名称"
-            rules={[{ required: true, message: '请输入动物名称' }]}
+            label={translate('名称', 'Name')}
+            rules={[{ required: true, message: translate('请输入动物名称', 'Please enter animal name') }]}
           >
-            <Input placeholder="请输入动物名称" />
+            <Input placeholder={translate('请输入动物名称', 'Please enter animal name')} />
           </Form.Item>
           <Form.Item
             name="type"
-            label="类型"
-            rules={[{ required: true, message: '请选择动物类型' }]}
+            label={translate('类型', 'Type')}
+            rules={[{ required: true, message: translate('请选择动物类型', 'Please select type') }]}
           >
-            <Select placeholder="请选择动物类型">
+            <Select placeholder={translate('请选择动物类型', 'Please select type')}>
               {animalTypes.map((type) => (
                 <Select.Option key={type} value={type}>
                   {type}
@@ -398,10 +400,10 @@ export default function UserAnimals() {
           </Form.Item>
           <Form.Item
             name="gender"
-            label="性别"
-            rules={[{ required: true, message: '请选择性别' }]}
+            label={translate('性别', 'Gender')}
+            rules={[{ required: true, message: translate('请选择性别', 'Please select gender') }]}
           >
-            <Select placeholder="请选择性别">
+            <Select placeholder={translate('请选择性别', 'Please select gender')}>
               {genders.map((gender) => (
                 <Select.Option key={gender} value={gender}>
                   {gender}
@@ -411,15 +413,15 @@ export default function UserAnimals() {
           </Form.Item>
           <Form.Item
             name="weight"
-            label="体重 (kg)"
-            rules={[{ required: true, message: '请输入体重' }]}
+            label={translate('体重 (kg)', 'Weight (kg)')}
+            rules={[{ required: true, message: translate('请输入体重', 'Please enter weight') }]}
           >
             <InputNumber min={0} step={0.1} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name="age"
-            label="年龄 (岁)"
-            rules={[{ required: true, message: '请输入年龄' }]}
+            label={translate('年龄 (岁)', 'Age (years)')}
+            rules={[{ required: true, message: translate('请输入年龄', 'Please enter age') }]}
           >
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
@@ -427,7 +429,7 @@ export default function UserAnimals() {
       </Modal>
 
       <Modal
-        title={viewingAnimal ? `${viewingAnimal.name} - 健康数据图表` : '健康数据图表'}
+        title={viewingAnimal ? `${viewingAnimal.name} - ${translate('健康数据图表', 'Health Charts')}` : translate('健康数据图表', 'Health Charts')}
         open={isChartModalVisible}
         onCancel={() => setIsChartModalVisible(false)}
         footer={null}

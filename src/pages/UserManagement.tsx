@@ -4,10 +4,12 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant
 import { dataManager } from '../services/dataManager';
 import { User, UserRole, UserStatus } from '../types';
 import dayjs from 'dayjs';
+import { useLocale } from '../i18n';
 
 const { Search } = Input;
 
 export default function UserManagement() {
+  const { translate } = useLocale();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -63,7 +65,7 @@ export default function UserManagement() {
   const handleDelete = (id: string) => {
     dataManager.removeUser(id);
     updateUsers();
-    message.success('删除成功');
+    message.success(translate('删除成功', 'Deleted'));
   };
 
   const handleSubmit = async () => {
@@ -75,7 +77,7 @@ export default function UserManagement() {
           ...values,
         };
         dataManager.updateUser(updated);
-        message.success('更新成功');
+        message.success(translate('更新成功', 'Updated'));
       } else {
         const newUser: User = {
           id: `user-${Date.now()}`,
@@ -89,7 +91,7 @@ export default function UserManagement() {
           organizationId: values.organizationId,
         };
         dataManager.addUser(newUser);
-        message.success('添加成功');
+        message.success(translate('添加成功', 'Added'));
       }
       setIsModalVisible(false);
       updateUsers();
@@ -100,23 +102,23 @@ export default function UserManagement() {
 
   const columns = [
     {
-      title: '用户名',
+      title: translate('用户名', 'Username'),
       dataIndex: 'username',
       key: 'username',
     },
     {
-      title: '邮箱',
+      title: translate('邮箱', 'Email'),
       dataIndex: 'email',
       key: 'email',
     },
     {
-      title: '手机',
+      title: translate('手机', 'Phone'),
       dataIndex: 'phone',
       key: 'phone',
       render: (phone: string | undefined) => phone || '-',
     },
     {
-      title: '角色',
+      title: translate('角色', 'Role'),
       dataIndex: 'role',
       key: 'role',
       render: (role: string) => {
@@ -125,11 +127,16 @@ export default function UserManagement() {
           普通用户: 'blue',
           查看者: 'default',
         };
-        return <Tag color={colorMap[role] || 'default'}>{role}</Tag>;
+        const roleLabel: Record<string, string> = {
+          管理员: translate('管理员', 'Admin'),
+          普通用户: translate('普通用户', 'User'),
+          查看者: translate('查看者', 'Viewer'),
+        };
+        return <Tag color={colorMap[role] || 'default'}>{roleLabel[role] || role}</Tag>;
       },
     },
     {
-      title: '状态',
+      title: translate('状态', 'Status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -138,17 +145,22 @@ export default function UserManagement() {
           禁用: 'red',
           待激活: 'orange',
         };
-        return <Tag color={colorMap[status] || 'default'}>{status}</Tag>;
+        const statusLabel: Record<string, string> = {
+          活跃: translate('活跃', 'Active'),
+          禁用: translate('禁用', 'Disabled'),
+          待激活: translate('待激活', 'Pending'),
+        };
+        return <Tag color={colorMap[status] || 'default'}>{statusLabel[status] || status}</Tag>;
       },
     },
     {
-      title: '动物数量',
+      title: translate('动物数量', 'Animals'),
       dataIndex: 'animalCount',
       key: 'animalCount',
       render: (count: number | undefined) => count || 0,
     },
     {
-      title: '创建时间',
+      title: translate('创建时间', 'Created At'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD'),
@@ -163,16 +175,16 @@ export default function UserManagement() {
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            编辑
+            {translate('编辑', 'Edit')}
           </Button>
           <Popconfirm
-            title="确定要删除这个用户吗？删除后该用户下的所有动物数据也将被删除。"
+            title={translate('确定要删除这个用户吗？删除后该用户下的所有动物数据也将被删除。', 'Delete this user? Animals under the user will also be removed.')}
             onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
+            okText={translate('确定', 'Confirm')}
+            cancelText={translate('取消', 'Cancel')}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+              {translate('删除', 'Delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -185,17 +197,17 @@ export default function UserManagement() {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>用户管理</h2>
+        <h2 style={{ margin: 0 }}>{translate('用户管理', 'User Management')}</h2>
         <Space>
           <Search
-            placeholder="搜索用户名或邮箱"
+            placeholder={translate('搜索用户名或邮箱', 'Search username or email')}
             allowClear
             onSearch={handleSearch}
             style={{ width: 250 }}
             prefix={<SearchOutlined />}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            添加用户
+            {translate('添加用户', 'Add User')}
           </Button>
         </Space>
       </div>
@@ -208,44 +220,44 @@ export default function UserManagement() {
       />
 
       <Modal
-        title={editingUser ? '编辑用户' : '添加用户'}
+        title={editingUser ? translate('编辑用户', 'Edit User') : translate('添加用户', 'Add User')}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
-        okText="确定"
-        cancelText="取消"
+        okText={translate('确定', 'Confirm')}
+        cancelText={translate('取消', 'Cancel')}
         width={600}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="username"
-            label="用户名"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            label={translate('用户名', 'Username')}
+            rules={[{ required: true, message: translate('请输入用户名', 'Please enter username') }]}
           >
-            <Input placeholder="请输入用户名" />
+            <Input placeholder={translate('请输入用户名', 'Please enter username')} />
           </Form.Item>
           <Form.Item
             name="email"
-            label="邮箱"
+            label={translate('邮箱', 'Email')}
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
+              { required: true, message: translate('请输入邮箱', 'Please enter email') },
+              { type: 'email', message: translate('请输入有效的邮箱地址', 'Enter a valid email') },
             ]}
           >
-            <Input placeholder="请输入邮箱" />
+            <Input placeholder={translate('请输入邮箱', 'Please enter email')} />
           </Form.Item>
           <Form.Item
             name="phone"
-            label="手机号"
+            label={translate('手机号', 'Phone')}
           >
-            <Input placeholder="请输入手机号" />
+            <Input placeholder={translate('请输入手机号', 'Please enter phone')} />
           </Form.Item>
           <Form.Item
             name="role"
-            label="角色"
-            rules={[{ required: true, message: '请选择角色' }]}
+            label={translate('角色', 'Role')}
+            rules={[{ required: true, message: translate('请选择角色', 'Please select role') }]}
           >
-            <Select placeholder="请选择角色">
+            <Select placeholder={translate('请选择角色', 'Please select role')}>
               {Object.values(UserRole).map((role) => (
                 <Select.Option key={role} value={role}>
                   {role}
@@ -255,10 +267,10 @@ export default function UserManagement() {
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
-            rules={[{ required: true, message: '请选择状态' }]}
+            label={translate('状态', 'Status')}
+            rules={[{ required: true, message: translate('请选择状态', 'Please select status') }]}
           >
-            <Select placeholder="请选择状态">
+            <Select placeholder={translate('请选择状态', 'Please select status')}>
               {Object.values(UserStatus).map((status) => (
                 <Select.Option key={status} value={status}>
                   {status}
@@ -268,9 +280,9 @@ export default function UserManagement() {
           </Form.Item>
           <Form.Item
             name="organizationId"
-            label="所属组织"
+            label={translate('所属组织', 'Organization')}
           >
-            <Select placeholder="请选择组织（可选）" allowClear>
+            <Select placeholder={translate('请选择组织（可选）', 'Select organization (optional)')} allowClear>
               {organizations.map((org) => (
                 <Select.Option key={org.id} value={org.id}>
                   {org.name}
@@ -283,4 +295,3 @@ export default function UserManagement() {
     </div>
   );
 }
-

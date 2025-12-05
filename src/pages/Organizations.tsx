@@ -5,8 +5,10 @@ import { dataManager } from '../services/dataManager';
 import { Organization, Animal, AnimalHealthStatus, HealthAlert } from '../types';
 import dayjs from 'dayjs';
 import AnimalHealthChart from '../components/AnimalHealthChart';
+import { useLocale } from '../i18n';
 
 export default function Organizations() {
+  const { translate } = useLocale();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
@@ -42,7 +44,7 @@ export default function Organizations() {
   const handleDelete = (id: string) => {
     dataManager.removeOrganization(id);
     updateOrganizations();
-    message.success('删除成功');
+    message.success(translate('删除成功', 'Deleted'));
   };
 
   const handleSubmit = async () => {
@@ -54,7 +56,7 @@ export default function Organizations() {
           ...values,
         };
         dataManager.updateOrganization(updated);
-        message.success('更新成功');
+        message.success(translate('更新成功', 'Updated'));
       } else {
         const newOrg: Organization = {
           id: `org-${Date.now()}`,
@@ -66,7 +68,7 @@ export default function Organizations() {
           status: values.status || 'active',
         };
         dataManager.addOrganization(newOrg);
-        message.success('添加成功');
+        message.success(translate('添加成功', 'Added'));
       }
       setIsModalVisible(false);
       updateOrganizations();
@@ -77,44 +79,44 @@ export default function Organizations() {
 
   const columns = [
     {
-      title: '组织名称',
+      title: translate('组织名称', 'Organization'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '描述',
+      title: translate('描述', 'Description'),
       dataIndex: 'description',
       key: 'description',
       ellipsis: true,
     },
     {
-      title: '用户数',
+      title: translate('用户数', 'Users'),
       dataIndex: 'userCount',
       key: 'userCount',
     },
     {
-      title: '动物数',
+      title: translate('动物数', 'Animals'),
       dataIndex: 'animalCount',
       key: 'animalCount',
     },
     {
-      title: '状态',
+      title: translate('状态', 'Status'),
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
         <Tag color={status === 'active' ? 'green' : 'red'}>
-          {status === 'active' ? '活跃' : '禁用'}
+          {status === 'active' ? translate('活跃', 'Active') : translate('禁用', 'Disabled')}
         </Tag>
       ),
     },
     {
-      title: '创建时间',
+      title: translate('创建时间', 'Created At'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD'),
     },
     {
-      title: '操作',
+      title: translate('操作', 'Actions'),
       key: 'action',
       render: (_: any, record: Organization) => (
         <Space>
@@ -123,23 +125,23 @@ export default function Organizations() {
             icon={<EyeOutlined />}
             onClick={() => handleViewDetails(record)}
           >
-            查看详情
+            {translate('查看详情', 'View Details')}
           </Button>
           <Button
             type="link"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            编辑
+            {translate('编辑', 'Edit')}
           </Button>
           <Popconfirm
-            title="确定要删除这个组织吗？删除后该组织下的用户将移出组织。"
+            title={translate('确定要删除这个组织吗？删除后该组织下的用户将移出组织。', 'Delete this organization? Users will be removed from it.')}
             onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
+            okText={translate('确定', 'Confirm')}
+            cancelText={translate('取消', 'Cancel')}
           >
             <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
+              {translate('删除', 'Delete')}
             </Button>
           </Popconfirm>
         </Space>
@@ -162,31 +164,31 @@ export default function Organizations() {
   return (
     <div>
       <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>组织管理</h2>
+        <h2 style={{ margin: 0 }}>{translate('组织管理', 'Organizations')}</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-          添加组织
+          {translate('添加组织', 'Add Organization')}
         </Button>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title="组织总数" value={stats.total} />
+            <Statistic title={translate('组织总数', 'Total Orgs')} value={stats.total} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title="活跃组织" value={stats.active} valueStyle={{ color: '#3f8600' }} />
+            <Statistic title={translate('活跃组织', 'Active Orgs')} value={stats.active} valueStyle={{ color: '#3f8600' }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title="总用户数" value={stats.totalUsers} />
+            <Statistic title={translate('总用户数', 'Total Users')} value={stats.totalUsers} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title="总动物数" value={stats.totalAnimals} />
+            <Statistic title={translate('总动物数', 'Total Animals')} value={stats.totalAnimals} />
           </Card>
         </Col>
       </Row>
@@ -211,16 +213,16 @@ export default function Organizations() {
               <div style={{ padding: '16px 0' }}>
                 <Row gutter={16}>
                   <Col span={12}>
-                    <Card title="组织用户" size="small">
+                    <Card title={translate('组织用户', 'Org Users')} size="small">
                       {orgUsers.length === 0 ? (
-                        <div>暂无用户</div>
+                        <div>{translate('暂无用户', 'No users')}</div>
                       ) : (
                         <Space direction="vertical" style={{ width: '100%' }}>
                           {orgUsers.map((user) => (
                             <div key={user.id}>
                               <Tag>{user.username}</Tag>
                               <span style={{ marginLeft: 8, color: '#666' }}>
-                                ({user.animalCount || 0}只动物)
+                                ({translate('动物', 'Animals')}: {user.animalCount || 0})
                               </span>
                             </div>
                           ))}
@@ -229,15 +231,15 @@ export default function Organizations() {
                     </Card>
                   </Col>
                   <Col span={12}>
-                    <Card title="动物类型分布" size="small">
+                    <Card title={translate('动物类型分布', 'Animal Types')} size="small">
                       {Object.keys(animalsByType).length === 0 ? (
-                        <div>暂无动物</div>
+                        <div>{translate('暂无动物', 'No animals')}</div>
                       ) : (
                         <Space direction="vertical" style={{ width: '100%' }}>
                           {Object.entries(animalsByType).map(([type, count]) => (
                             <div key={type}>
                               <Tag color="blue">{type}</Tag>
-                              <span style={{ marginLeft: 8 }}>{count}只</span>
+                              <span style={{ marginLeft: 8 }}>{count}</span>
                             </div>
                           ))}
                         </Space>
@@ -252,39 +254,39 @@ export default function Organizations() {
       />
 
       <Modal
-        title={editingOrg ? '编辑组织' : '添加组织'}
+        title={editingOrg ? translate('编辑组织', 'Edit Organization') : translate('添加组织', 'Add Organization')}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={() => setIsModalVisible(false)}
-        okText="确定"
-        cancelText="取消"
+        okText={translate('确定', 'Confirm')}
+        cancelText={translate('取消', 'Cancel')}
       >
         <Form form={form} layout="vertical">
           <Form.Item
             name="name"
-            label="组织名称"
-            rules={[{ required: true, message: '请输入组织名称' }]}
+            label={translate('组织名称', 'Organization Name')}
+            rules={[{ required: true, message: translate('请输入组织名称', 'Please enter organization name') }]}
           >
-            <Input placeholder="请输入组织名称" />
+            <Input placeholder={translate('请输入组织名称', 'Please enter organization name')} />
           </Form.Item>
           <Form.Item
             name="description"
-            label="描述"
+            label={translate('描述', 'Description')}
           >
-            <Input.TextArea placeholder="请输入组织描述" rows={3} />
+            <Input.TextArea placeholder={translate('请输入组织描述', 'Please enter description')} rows={3} />
           </Form.Item>
           <Form.Item
             name="status"
-            label="状态"
+            label={translate('状态', 'Status')}
             initialValue="active"
           >
-            <Input placeholder="状态" disabled />
+            <Input placeholder={translate('状态', 'Status')} disabled />
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={`${viewingOrg?.name} - 详细信息`}
+        title={`${viewingOrg?.name} - ${translate('详细信息', 'Details')}`}
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={null}
@@ -298,6 +300,7 @@ export default function Organizations() {
 
 // 组织详情视图组件
 function OrganizationDetailView({ organization }: { organization: Organization }) {
+  const { translate } = useLocale();
   const [healthStatuses, setHealthStatuses] = useState<AnimalHealthStatus[]>([]);
   const [alerts, setAlerts] = useState<HealthAlert[]>([]);
   const [isChartModalVisible, setIsChartModalVisible] = useState(false);
@@ -348,39 +351,39 @@ function OrganizationDetailView({ organization }: { organization: Organization }
 
   const animalColumns = [
     {
-      title: '名称',
+      title: translate('名称', 'Name'),
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '类型',
+      title: translate('类型', 'Type'),
       dataIndex: 'type',
       key: 'type',
     },
     {
-      title: '性别',
+      title: translate('性别', 'Gender'),
       dataIndex: 'gender',
       key: 'gender',
     },
     {
-      title: '体重 (kg)',
+      title: translate('体重 (kg)', 'Weight (kg)'),
       dataIndex: 'weight',
       key: 'weight',
       render: (weight: number) => weight.toFixed(1),
     },
     {
-      title: '年龄 (岁)',
+      title: translate('年龄 (岁)', 'Age (years)'),
       dataIndex: 'age',
       key: 'age',
     },
     {
-      title: '创建时间',
+      title: translate('创建时间', 'Created At'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD'),
     },
     {
-      title: '操作',
+      title: translate('操作', 'Actions'),
       key: 'action',
       render: (_: any, record: Animal) => (
         <Button
@@ -388,7 +391,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
           icon={<LineChartOutlined />}
           onClick={() => handleViewAnimalChart(record)}
         >
-          健康数据
+          {translate('健康数据', 'Health Data')}
         </Button>
       ),
     },
@@ -412,12 +415,12 @@ function OrganizationDetailView({ organization }: { organization: Organization }
 
   const healthStatusColumns = [
     {
-      title: '动物名称',
+      title: translate('动物名称', 'Animal'),
       dataIndex: 'animalName',
       key: 'animalName',
     },
     {
-      title: '健康评分',
+      title: translate('健康评分', 'Health Score'),
       dataIndex: 'latestHealthScore',
       key: 'latestHealthScore',
       render: (score: number) => (
@@ -429,31 +432,33 @@ function OrganizationDetailView({ organization }: { organization: Organization }
             strokeColor={getHealthScoreColor(score)}
             format={() => `${score.toFixed(0)}`}
           />
-          <Tag color={getHealthScoreColor(score)}>{score >= 80 ? '健康' : score >= 60 ? '注意' : '异常'}</Tag>
+          <Tag color={getHealthScoreColor(score)}>
+            {score >= 80 ? translate('健康', 'Healthy') : score >= 60 ? translate('注意', 'Warning') : translate('异常', 'Critical')}
+          </Tag>
         </div>
       ),
       sorter: (a: AnimalHealthStatus, b: AnimalHealthStatus) => a.latestHealthScore - b.latestHealthScore,
     },
     {
-      title: '心率',
+      title: translate('心率', 'Heart Rate'),
       dataIndex: 'latestHeartRate',
       key: 'latestHeartRate',
       render: (rate: number | undefined) => rate ? `${rate.toFixed(0)} bpm` : '-',
     },
     {
-      title: '体温',
+      title: translate('体温', 'Temperature'),
       dataIndex: 'latestTemperature',
       key: 'latestTemperature',
       render: (temp: number | undefined) => temp ? `${temp.toFixed(1)}°C` : '-',
     },
     {
-      title: '活动量',
+      title: translate('活动量', 'Activity'),
       dataIndex: 'latestActivity',
       key: 'latestActivity',
       render: (activity: number | undefined) => activity ? `${activity.toFixed(0)}%` : '-',
     },
     {
-      title: '预警数',
+      title: translate('预警数', 'Alerts'),
       dataIndex: 'alertCount',
       key: 'alertCount',
       render: (count: number) => (
@@ -463,13 +468,13 @@ function OrganizationDetailView({ organization }: { organization: Organization }
       ),
     },
     {
-      title: '更新时间',
+      title: translate('更新时间', 'Updated At'),
       dataIndex: 'lastUpdateTime',
       key: 'lastUpdateTime',
       render: (date: Date) => dayjs(date).format('MM-DD HH:mm'),
     },
     {
-      title: '操作',
+      title: translate('操作', 'Actions'),
       key: 'action',
       render: (_: any, record: AnimalHealthStatus) => {
         const animal = orgAnimals.find((a) => a.id === record.animalId);
@@ -480,7 +485,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
             icon={<LineChartOutlined />}
             onClick={() => handleViewAnimalChart(animal)}
           >
-            查看图表
+            {translate('查看图表', 'View Chart')}
           </Button>
         );
       },
@@ -489,13 +494,13 @@ function OrganizationDetailView({ organization }: { organization: Organization }
 
   const alertColumns = [
     {
-      title: '时间',
+      title: translate('时间', 'Time'),
       dataIndex: 'timestamp',
       key: 'timestamp',
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
-      title: '动物',
+      title: translate('动物', 'Animal'),
       dataIndex: 'animalId',
       key: 'animalId',
       render: (id: string) => {
@@ -504,26 +509,26 @@ function OrganizationDetailView({ organization }: { organization: Organization }
       },
     },
     {
-      title: '类型',
+      title: translate('类型', 'Type'),
       dataIndex: 'type',
       key: 'type',
     },
     {
-      title: '严重程度',
+      title: translate('严重程度', 'Severity'),
       dataIndex: 'severity',
       key: 'severity',
       render: (severity: string) => {
         const severityMap: Record<string, string> = {
-          low: '轻微',
-          medium: '中等',
-          high: '严重',
-          critical: '紧急',
+          low: translate('轻微', 'Low'),
+          medium: translate('中等', 'Medium'),
+          high: translate('严重', 'High'),
+          critical: translate('紧急', 'Critical'),
         };
         return <Tag color={getSeverityColor(severity)}>{severityMap[severity] || severity}</Tag>;
       },
     },
     {
-      title: '消息',
+      title: translate('消息', 'Message'),
       dataIndex: 'message',
       key: 'message',
       ellipsis: true,
@@ -533,22 +538,22 @@ function OrganizationDetailView({ organization }: { organization: Organization }
   const tabItems = [
     {
       key: 'overview',
-      label: '概览',
+      label: translate('概览', 'Overview'),
       children: (
         <div>
           <Descriptions column={2} bordered style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="组织名称">{organization.name}</Descriptions.Item>
-            <Descriptions.Item label="状态">
+            <Descriptions.Item label={translate('组织名称', 'Organization')}>{organization.name}</Descriptions.Item>
+            <Descriptions.Item label={translate('状态', 'Status')}>
               <Tag color={organization.status === 'active' ? 'green' : 'red'}>
-                {organization.status === 'active' ? '活跃' : '禁用'}
+                {organization.status === 'active' ? translate('活跃', 'Active') : translate('禁用', 'Disabled')}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="描述" span={2}>
+            <Descriptions.Item label={translate('描述', 'Description')} span={2}>
               {organization.description || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="用户数">{orgUsers.length}</Descriptions.Item>
-            <Descriptions.Item label="动物数">{orgAnimals.length}</Descriptions.Item>
-            <Descriptions.Item label="创建时间" span={2}>
+            <Descriptions.Item label={translate('用户数', 'Users')}>{orgUsers.length}</Descriptions.Item>
+            <Descriptions.Item label={translate('动物数', 'Animals')}>{orgAnimals.length}</Descriptions.Item>
+            <Descriptions.Item label={translate('创建时间', 'Created At')} span={2}>
               {dayjs(organization.createdAt).format('YYYY-MM-DD HH:mm:ss')}
             </Descriptions.Item>
           </Descriptions>
@@ -557,7 +562,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
             <Col span={6}>
               <Card>
                 <Statistic
-                  title="平均健康评分"
+                  title={translate('平均健康评分', 'Avg Health Score')}
                   value={healthStats.avgScore.toFixed(1)}
                   suffix="/ 100"
                   valueStyle={{ color: getHealthScoreColor(healthStats.avgScore) }}
@@ -567,18 +572,18 @@ function OrganizationDetailView({ organization }: { organization: Organization }
             </Col>
             <Col span={6}>
               <Card>
-                <Statistic title="健康" value={healthStats.healthy} valueStyle={{ color: '#52c41a' }} />
+                <Statistic title={translate('健康', 'Healthy')} value={healthStats.healthy} valueStyle={{ color: '#52c41a' }} />
               </Card>
             </Col>
             <Col span={6}>
               <Card>
-                <Statistic title="注意" value={healthStats.warning} valueStyle={{ color: '#faad14' }} />
+                <Statistic title={translate('注意', 'Warning')} value={healthStats.warning} valueStyle={{ color: '#faad14' }} />
               </Card>
             </Col>
             <Col span={6}>
               <Card>
                 <Statistic
-                  title="异常"
+                  title={translate('异常', 'Critical')}
                   value={healthStats.critical}
                   valueStyle={{ color: '#ff4d4f' }}
                 />
@@ -589,7 +594,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
           <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {healthStats.totalAlerts > 0 && (
               <Alert
-                message={`有 ${healthStats.totalAlerts} 条未读预警`}
+                message={translate(`有 ${healthStats.totalAlerts} 条未读预警`, `${healthStats.totalAlerts} unread alerts`)}
                 type="warning"
                 icon={<WarningOutlined />}
                 style={{ flex: 1, marginRight: 16 }}
@@ -599,21 +604,21 @@ function OrganizationDetailView({ organization }: { organization: Organization }
               icon={<ReloadOutlined />}
               onClick={updateHealthData}
             >
-              刷新健康数据
+              {translate('刷新健康数据', 'Refresh Health Data')}
             </Button>
           </div>
 
           <Row gutter={16}>
             <Col span={12}>
-              <Card title="动物类型分布" size="small">
+              <Card title={translate('动物类型分布', 'Animal Types')} size="small">
                 {Object.keys(animalsByType).length === 0 ? (
-                  <div>暂无动物</div>
+                  <div>{translate('暂无动物', 'No animals')}</div>
                 ) : (
                   <Space direction="vertical" style={{ width: '100%' }}>
                     {Object.entries(animalsByType).map(([type, count]) => (
                       <div key={type} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Tag color="blue">{type}</Tag>
-                        <span>{count}只</span>
+                        <span>{count}</span>
                       </div>
                     ))}
                   </Space>
@@ -621,9 +626,9 @@ function OrganizationDetailView({ organization }: { organization: Organization }
               </Card>
             </Col>
             <Col span={12}>
-              <Card title="用户列表" size="small">
+              <Card title={translate('用户列表', 'Users')} size="small">
                 {orgUsers.length === 0 ? (
-                  <div>暂无用户</div>
+                  <div>{translate('暂无用户', 'No users')}</div>
                 ) : (
                   <Space direction="vertical" style={{ width: '100%' }}>
                     {orgUsers.map((user) => (
@@ -632,7 +637,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
                           <Tag>{user.username}</Tag>
                           <span style={{ marginLeft: 8, color: '#666' }}>{user.email}</span>
                         </div>
-                        <span>{user.animalCount || 0}只</span>
+                        <span>{user.animalCount || 0}</span>
                       </div>
                     ))}
                   </Space>
@@ -647,7 +652,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
       key: 'health',
       label: (
         <span>
-          健康状态
+          {translate('健康状态', 'Health Status')}
           {healthStats.totalAlerts > 0 && (
             <Badge count={healthStats.totalAlerts} style={{ marginLeft: 8 }} />
           )}
@@ -660,7 +665,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
               icon={<ReloadOutlined />}
               onClick={updateHealthData}
             >
-              刷新数据
+              {translate('刷新数据', 'Refresh')}
             </Button>
           </div>
           <Table
@@ -677,7 +682,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
       key: 'alerts',
       label: (
         <span>
-          健康预警
+          {translate('健康预警', 'Health Alerts')}
           {healthStats.totalAlerts > 0 && (
             <Badge count={healthStats.totalAlerts} style={{ marginLeft: 8 }} />
           )}
@@ -690,11 +695,11 @@ function OrganizationDetailView({ organization }: { organization: Organization }
               icon={<ReloadOutlined />}
               onClick={updateHealthData}
             >
-              刷新数据
+              {translate('刷新数据', 'Refresh')}
             </Button>
           </div>
           {alerts.length === 0 ? (
-            <Alert message="暂无预警" type="success" />
+            <Alert message={translate('暂无预警', 'No alerts')} type="success" />
           ) : (
             <Table
               columns={alertColumns}
@@ -709,7 +714,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
     },
     {
       key: 'animals',
-      label: `所有动物 (${orgAnimals.length})`,
+      label: `${translate('所有动物', 'All Animals')} (${orgAnimals.length})`,
       children: (
         <Table
           columns={animalColumns}
@@ -722,7 +727,7 @@ function OrganizationDetailView({ organization }: { organization: Organization }
     },
     {
       key: 'byUser',
-      label: '按用户查看',
+      label: translate('按用户查看', 'By User'),
       children: (
         <div>
           {animalsByUser.map(({ user, animals }) => (
@@ -732,13 +737,13 @@ function OrganizationDetailView({ organization }: { organization: Organization }
                 <Space>
                   <span>{user.username}</span>
                   <Tag>{user.email}</Tag>
-                  <Tag color="blue">{animals.length}只动物</Tag>
+                  <Tag color="blue">{translate('动物', 'Animals')}: {animals.length}</Tag>
                 </Space>
               }
               style={{ marginBottom: 16 }}
             >
               {animals.length === 0 ? (
-                <div>该用户暂无动物</div>
+                <div>{translate('该用户暂无动物', 'No animals for this user')}</div>
               ) : (
                 <Table
                   columns={animalColumns}
