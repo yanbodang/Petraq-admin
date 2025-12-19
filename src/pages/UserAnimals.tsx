@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Table, Select, Card, Tag, Space, Button, message, Modal, Form, Input, InputNumber, Tabs, Row, Col, Statistic, Progress } from 'antd';
+import { Table, Select, Card, Tag, Space, Button, message, Modal, Form, Input, InputNumber, Tabs, Row, Col, Statistic, Progress, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, LineChartOutlined } from '@ant-design/icons';
 import { dataManager } from '../services/dataManager';
 import { Animal, User, AnimalHealthStatus } from '../types';
@@ -65,6 +65,7 @@ export default function UserAnimals() {
       gender: animal.gender,
       weight: animal.weight,
       age: animal.age,
+      birthday: animal.birthday ? dayjs(animal.birthday) : undefined,
     });
     setIsModalVisible(true);
   };
@@ -87,6 +88,7 @@ export default function UserAnimals() {
         const updated: Animal = {
           ...editingAnimal,
           ...values,
+          birthday: values.birthday ? values.birthday.toDate() : editingAnimal.birthday,
         };
         dataManager.updateAnimal(updated);
         message.success('更新成功');
@@ -99,6 +101,7 @@ export default function UserAnimals() {
           gender: values.gender,
           weight: values.weight,
           age: values.age,
+          birthday: values.birthday ? values.birthday.toDate() : undefined,
           createdAt: new Date(),
           lastSyncAt: new Date(),
         };
@@ -154,6 +157,12 @@ export default function UserAnimals() {
       title: translate('年龄 (岁)', 'Age (years)'),
       dataIndex: 'age',
       key: 'age',
+    },
+    {
+      title: translate('生日', 'Birthday'),
+      dataIndex: 'birthday',
+      key: 'birthday',
+      render: (date: Date | undefined) => date ? dayjs(date).format('YYYY-MM-DD') : '-',
     },
     {
       title: translate('创建时间', 'Created At'),
@@ -424,6 +433,12 @@ export default function UserAnimals() {
             rules={[{ required: true, message: translate('请输入年龄', 'Please enter age') }]}
           >
             <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name="birthday"
+            label={translate('生日', 'Birthday')}
+          >
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

@@ -13,6 +13,17 @@ import {
   HealthScore,
   HealthAlert,
   AnimalHealthStatus,
+  Device,
+  MedicalRecord,
+  MedicalRecordType,
+  Report,
+  ReportType,
+  AITip,
+  AITipType,
+  AIPushRule,
+  PaymentStatus,
+  PaymentType,
+  UserGroupType,
 } from '../types';
 
 class DataManager {
@@ -23,6 +34,11 @@ class DataManager {
   private healthData: HealthDataPoint[] = [];
   private healthScores: HealthScore[] = [];
   private healthAlerts: HealthAlert[] = [];
+  private devices: Device[] = [];
+  private medicalRecords: MedicalRecord[] = [];
+  private reports: Report[] = [];
+  private aiTips: AITip[] = [];
+  private aiPushRules: AIPushRule[] = [];
 
   constructor() {
     this.setupMockData();
@@ -269,6 +285,17 @@ class DataManager {
         createdAt: new Date('2024-01-01'),
         lastLoginAt: new Date(),
         animalCount: 0,
+        fullName: '管理员',
+        address: '北京市朝阳区',
+        occupation: '系统管理员',
+        birthday: new Date('1990-01-01'),
+        gender: '男',
+        groupType: UserGroupType.CLINIC,
+        paymentStatus: PaymentStatus.PAID,
+        hasOverdue: false,
+        deviceCount: 0,
+        paidDeviceCount: 0,
+        unpaidDeviceCount: 0,
       },
       {
         id: 'user-2',
@@ -281,6 +308,18 @@ class DataManager {
         lastLoginAt: new Date(Date.now() - 3600000),
         animalCount: 20,
         organizationId: 'org-1',
+        fullName: '张农场主',
+        address: '内蒙古自治区呼和浩特市',
+        occupation: '农场主',
+        birthday: new Date('1985-05-15'),
+        gender: '男',
+        groupType: UserGroupType.LIVESTOCK,
+        paymentStatus: PaymentStatus.PAID,
+        hasOverdue: false,
+        deviceCount: 20,
+        paidDeviceCount: 18,
+        unpaidDeviceCount: 2,
+        promotionInfo: '通过农业合作社推荐',
       },
       {
         id: 'user-3',
@@ -292,6 +331,17 @@ class DataManager {
         createdAt: new Date('2024-01-20'),
         animalCount: 15,
         organizationId: 'org-1',
+        fullName: '李牧民',
+        address: '新疆维吾尔自治区',
+        occupation: '牧民',
+        birthday: new Date('1988-08-20'),
+        gender: '男',
+        groupType: UserGroupType.LIVESTOCK,
+        paymentStatus: PaymentStatus.OVERDUE,
+        hasOverdue: true,
+        deviceCount: 15,
+        paidDeviceCount: 10,
+        unpaidDeviceCount: 5,
       },
       {
         id: 'user-4',
@@ -302,6 +352,17 @@ class DataManager {
         createdAt: new Date('2024-02-10'),
         animalCount: 10,
         organizationId: 'org-2',
+        fullName: '王兽医',
+        address: '上海市浦东新区',
+        occupation: '兽医',
+        birthday: new Date('1992-03-10'),
+        gender: '女',
+        groupType: UserGroupType.CLINIC,
+        paymentStatus: PaymentStatus.PAID,
+        hasOverdue: false,
+        deviceCount: 10,
+        paidDeviceCount: 10,
+        unpaidDeviceCount: 0,
       },
       {
         id: 'user-5',
@@ -311,6 +372,17 @@ class DataManager {
         status: UserStatus.ACTIVE,
         createdAt: new Date('2024-02-15'),
         animalCount: 0,
+        fullName: '赵保险',
+        address: '深圳市南山区',
+        occupation: '保险专员',
+        birthday: new Date('1995-06-15'),
+        gender: '女',
+        groupType: UserGroupType.INSURANCE,
+        paymentStatus: PaymentStatus.FREE,
+        hasOverdue: false,
+        deviceCount: 0,
+        paidDeviceCount: 0,
+        unpaidDeviceCount: 0,
       },
     ];
 
@@ -323,17 +395,63 @@ class DataManager {
     users.forEach((user, userIndex) => {
       if (user.role === UserRole.USER && user.animalCount) {
         for (let i = 0; i < user.animalCount; i++) {
+          const animalId = `animal-${user.id}-${i}`;
+          const deviceId = `device-${user.id}-${i}`;
+          const birthday = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 365 * 24 * 3600000);
+          const age = Math.floor((Date.now() - birthday.getTime()) / (365 * 24 * 3600000));
+          
+          // 创建设备
+          const device: Device = {
+            id: deviceId,
+            code: `DEV${String(Date.now() + i).slice(-8)}`,
+            userId: user.id,
+            animalId: animalId,
+            isActivated: true,
+            isPaid: i < (user.paidDeviceCount || 0),
+            paymentType: i < (user.paidDeviceCount || 0) ? PaymentType.MONTHLY : undefined,
+            batteryLevel: Math.floor(Math.random() * 40) + 60, // 60-100%
+            isBluetoothConnected: Math.random() > 0.3,
+            lastSyncAt: new Date(Date.now() - Math.random() * 24 * 3600000),
+            createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000),
+          };
+          this.devices.push(device);
+
+          // 创建动物
           this.animals.push({
-            id: `animal-${user.id}-${i}`,
+            id: animalId,
             userId: user.id,
             name: `${animalTypes[userIndex % animalTypes.length]}${String(i + 1).padStart(3, '0')}`,
             type: animalTypes[userIndex % animalTypes.length],
             gender: genders[i % 2],
             weight: 50 + Math.random() * 500,
-            age: Math.floor(Math.random() * 10) + 1,
+            age: age,
+            birthday: birthday,
+            deviceId: deviceId,
             createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000),
             lastSyncAt: new Date(Date.now() - Math.random() * 24 * 3600000),
           });
+
+          // 为部分动物创建医疗记录
+          if (Math.random() > 0.7) {
+            const recordTypes = [
+              MedicalRecordType.VACCINATION,
+              MedicalRecordType.PHYSICAL_EXAM,
+              MedicalRecordType.BLOOD_TEST,
+              MedicalRecordType.DIAGNOSIS,
+            ];
+            const recordType = recordTypes[Math.floor(Math.random() * recordTypes.length)];
+            this.medicalRecords.push({
+              id: `record-${animalId}-${Date.now()}`,
+              animalId: animalId,
+              type: recordType,
+              title: `${recordType}记录`,
+              description: `这是${animalId}的${recordType}记录`,
+              date: new Date(Date.now() - Math.random() * 180 * 24 * 3600000),
+              veterinarian: user.groupType === UserGroupType.CLINIC ? user.fullName : '张兽医',
+              clinic: user.organizationId ? this.organizations.find((o) => o.id === user.organizationId)?.name : undefined,
+              createdAt: new Date(),
+            });
+          }
         }
       }
     });
@@ -367,6 +485,65 @@ class DataManager {
 
     // 生成初始健康数据
     this.generateInitialHealthData();
+
+    // 初始化AI文案库
+    this.aiTips = [
+      {
+        id: 'tip-1',
+        type: AITipType.HEALTH_TIP,
+        content: '您的动物健康评分良好，继续保持！',
+        tags: ['健康', '良好'],
+        isActive: true,
+        usageCount: 0,
+        createdAt: new Date(),
+      },
+      {
+        id: 'tip-2',
+        type: AITipType.CARE_TIP,
+        content: '建议定期为动物进行体检，确保健康状态',
+        tags: ['护理', '体检'],
+        isActive: true,
+        usageCount: 0,
+        createdAt: new Date(),
+      },
+      {
+        id: 'tip-3',
+        type: AITipType.ALERT_TIP,
+        content: '检测到健康指标异常，请及时关注',
+        tags: ['预警', '异常'],
+        isActive: true,
+        usageCount: 0,
+        createdAt: new Date(),
+      },
+    ];
+
+    // 初始化AI推送规则
+    this.aiPushRules = [
+      {
+        id: 'rule-1',
+        name: '健康评分低预警',
+        tipType: AITipType.ALERT_TIP,
+        conditions: {
+          healthScoreRange: [0, 60],
+        },
+        tipContent: '您的动物健康评分较低，建议及时检查',
+        isActive: true,
+        priority: 1,
+        createdAt: new Date(),
+      },
+      {
+        id: 'rule-2',
+        name: '健康评分良好提示',
+        tipType: AITipType.HEALTH_TIP,
+        conditions: {
+          healthScoreRange: [80, 100],
+        },
+        tipContent: '您的动物健康状况良好，继续保持！',
+        isActive: true,
+        priority: 2,
+        createdAt: new Date(),
+      },
+    ];
   }
 
   // 生成初始健康数据
@@ -390,6 +567,9 @@ class DataManager {
       const heartRate = this.generateMockHeartRate(animal);
       const temperature = this.generateMockTemperature(animal);
       const activity = Math.random() * 100;
+      const hrv = 20 + Math.random() * 60; // HRV值 20-80
+      const moodValues = ['平静', '活跃', '紧张', '放松', '兴奋'];
+      const mood = moodValues[Math.floor(Math.random() * moodValues.length)];
 
       this.healthData.push(
         {
@@ -415,6 +595,22 @@ class DataManager {
           value: activity,
           timestamp: new Date(),
           unit: '%',
+        },
+        {
+          id: `data-${animal.id}-hrv`,
+          animalId: animal.id,
+          type: HealthDataType.HRV,
+          value: hrv,
+          timestamp: new Date(),
+          unit: 'ms',
+        },
+        {
+          id: `data-${animal.id}-mood`,
+          animalId: animal.id,
+          type: HealthDataType.MOOD,
+          value: moodValues.indexOf(mood),
+          timestamp: new Date(),
+          unit: '',
         }
       );
 
@@ -533,12 +729,20 @@ class DataManager {
       const heartRate = this.generateMockHeartRate(animal);
       const temperature = this.generateMockTemperature(animal);
       const activity = Math.random() * 100;
+      const hrv = 20 + Math.random() * 60; // HRV值 20-80
+      const moodValues = ['平静', '活跃', '紧张', '放松', '兴奋'];
+      const mood = moodValues[Math.floor(Math.random() * moodValues.length)];
 
-      // 更新最新数据
+      // 更新最新数据（保留历史数据，只更新最新的）
+      // 为了保留历史数据，我们只删除最近的数据点，保留旧的
+      const now = Date.now();
       this.healthData = this.healthData.filter(
-        (d) => !(d.animalId === animal.id && [HealthDataType.HEART_RATE, HealthDataType.TEMPERATURE, HealthDataType.ACTIVITY].includes(d.type))
+        (d) => !(d.animalId === animal.id && 
+          [HealthDataType.HEART_RATE, HealthDataType.TEMPERATURE, HealthDataType.ACTIVITY, HealthDataType.HRV, HealthDataType.MOOD].includes(d.type) &&
+          (now - d.timestamp.getTime()) < 60000) // 只删除1分钟内的最新数据
       );
 
+      // 添加新的数据点（保留历史）
       this.healthData.push(
         {
           id: `data-${animal.id}-hr-${Date.now()}`,
@@ -563,6 +767,22 @@ class DataManager {
           value: activity,
           timestamp: new Date(),
           unit: '%',
+        },
+        {
+          id: `data-${animal.id}-hrv-${Date.now()}`,
+          animalId: animal.id,
+          type: HealthDataType.HRV,
+          value: hrv,
+          timestamp: new Date(),
+          unit: 'ms',
+        },
+        {
+          id: `data-${animal.id}-mood-${Date.now()}`,
+          animalId: animal.id,
+          type: HealthDataType.MOOD,
+          value: moodValues.indexOf(mood),
+          timestamp: new Date(),
+          unit: '',
         }
       );
 
@@ -611,6 +831,14 @@ class DataManager {
       .filter((d) => d.animalId === animalId && d.type === HealthDataType.ACTIVITY)
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
 
+    const latestHRV = this.healthData
+      .filter((d) => d.animalId === animalId && d.type === HealthDataType.HRV)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+
+    const latestMood = this.healthData
+      .filter((d) => d.animalId === animalId && d.type === HealthDataType.MOOD)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+
     const alertCount = this.healthAlerts.filter((a) => a.animalId === animalId && !a.isRead).length;
 
     return {
@@ -620,6 +848,8 @@ class DataManager {
       latestHeartRate: latestHeartRate?.value,
       latestTemperature: latestTemperature?.value,
       latestActivity: latestActivity?.value,
+      latestHRV: latestHRV?.value,
+      latestMood: latestMood?.value?.toString(),
       alertCount,
       lastUpdateTime: latestScore?.timestamp || new Date(),
     };
@@ -659,6 +889,276 @@ class DataManager {
     return this.healthData
       .filter((d) => d.animalId === animalId && d.timestamp >= cutoffTime)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  // 获取所有历史健康数据（不限制时间范围）
+  getAnimalHistoricalHealthData(animalId: string): HealthDataPoint[] {
+    return this.healthData
+      .filter((d) => d.animalId === animalId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  }
+
+  // 设备管理
+  getDevices(): Device[] {
+    return this.devices;
+  }
+
+  getDevice(id: string): Device | undefined {
+    return this.devices.find((d) => d.id === id);
+  }
+
+  getDevicesByUser(userId: string): Device[] {
+    return this.devices.filter((d) => d.userId === userId);
+  }
+
+  addDevice(device: Device): void {
+    this.devices.push(device);
+    // 更新用户的设备数量
+    if (device.userId) {
+      const user = this.users.find((u) => u.id === device.userId);
+      if (user) {
+        user.deviceCount = (user.deviceCount || 0) + 1;
+        if (device.isPaid) {
+          user.paidDeviceCount = (user.paidDeviceCount || 0) + 1;
+        } else {
+          user.unpaidDeviceCount = (user.unpaidDeviceCount || 0) + 1;
+        }
+      }
+    }
+  }
+
+  updateDevice(device: Device): void {
+    const index = this.devices.findIndex((d) => d.id === device.id);
+    if (index !== -1) {
+      const oldDevice = this.devices[index];
+      this.devices[index] = device;
+      // 更新用户设备统计
+      if (oldDevice.userId && oldDevice.userId !== device.userId) {
+        // 用户变更
+        if (oldDevice.userId) {
+          const oldUser = this.users.find((u) => u.id === oldDevice.userId);
+          if (oldUser) {
+            oldUser.deviceCount = Math.max(0, (oldUser.deviceCount || 0) - 1);
+            if (oldDevice.isPaid) {
+              oldUser.paidDeviceCount = Math.max(0, (oldUser.paidDeviceCount || 0) - 1);
+            } else {
+              oldUser.unpaidDeviceCount = Math.max(0, (oldUser.unpaidDeviceCount || 0) - 1);
+            }
+          }
+        }
+        if (device.userId) {
+          const newUser = this.users.find((u) => u.id === device.userId);
+          if (newUser) {
+            newUser.deviceCount = (newUser.deviceCount || 0) + 1;
+            if (device.isPaid) {
+              newUser.paidDeviceCount = (newUser.paidDeviceCount || 0) + 1;
+            } else {
+              newUser.unpaidDeviceCount = (newUser.unpaidDeviceCount || 0) + 1;
+            }
+          }
+        }
+      } else if (oldDevice.isPaid !== device.isPaid && device.userId) {
+        // 付费状态变更
+        const user = this.users.find((u) => u.id === device.userId);
+        if (user) {
+          if (oldDevice.isPaid && !device.isPaid) {
+            user.paidDeviceCount = Math.max(0, (user.paidDeviceCount || 0) - 1);
+            user.unpaidDeviceCount = (user.unpaidDeviceCount || 0) + 1;
+          } else if (!oldDevice.isPaid && device.isPaid) {
+            user.unpaidDeviceCount = Math.max(0, (user.unpaidDeviceCount || 0) - 1);
+            user.paidDeviceCount = (user.paidDeviceCount || 0) + 1;
+          }
+        }
+      }
+    }
+  }
+
+  removeDevice(id: string): void {
+    const device = this.devices.find((d) => d.id === id);
+    if (device) {
+      this.devices = this.devices.filter((d) => d.id !== id);
+      if (device.userId) {
+        const user = this.users.find((u) => u.id === device.userId);
+        if (user) {
+          user.deviceCount = Math.max(0, (user.deviceCount || 0) - 1);
+          if (device.isPaid) {
+            user.paidDeviceCount = Math.max(0, (user.paidDeviceCount || 0) - 1);
+          } else {
+            user.unpaidDeviceCount = Math.max(0, (user.unpaidDeviceCount || 0) - 1);
+          }
+        }
+      }
+    }
+  }
+
+  // 医疗记录管理
+  getMedicalRecords(animalId?: string): MedicalRecord[] {
+    if (animalId) {
+      return this.medicalRecords.filter((r) => r.animalId === animalId);
+    }
+    return this.medicalRecords;
+  }
+
+  addMedicalRecord(record: MedicalRecord): void {
+    this.medicalRecords.push(record);
+  }
+
+  updateMedicalRecord(record: MedicalRecord): void {
+    const index = this.medicalRecords.findIndex((r) => r.id === record.id);
+    if (index !== -1) {
+      this.medicalRecords[index] = record;
+    }
+  }
+
+  removeMedicalRecord(id: string): void {
+    this.medicalRecords = this.medicalRecords.filter((r) => r.id !== id);
+  }
+
+  // 报告管理
+  getReports(userId?: string): Report[] {
+    if (userId) {
+      return this.reports.filter((r) => r.userId === userId);
+    }
+    return this.reports;
+  }
+
+  addReport(report: Report): void {
+    this.reports.push(report);
+  }
+
+  generateMonthlyReport(userId: string, period: { start: Date; end: Date }): Report {
+    const user = this.getUser(userId);
+    const userAnimals = this.getAnimalsByUser(userId);
+    const animalIds = userAnimals.map((a) => a.id);
+    const healthStatuses = animalIds
+      .map((id) => this.getAnimalHealthStatus(id))
+      .filter((s): s is AnimalHealthStatus => s !== undefined);
+
+    const avgHealthScore = healthStatuses.length > 0
+      ? healthStatuses.reduce((sum, s) => sum + s.latestHealthScore, 0) / healthStatuses.length
+      : 0;
+
+    const report: Report = {
+      id: `report-${Date.now()}`,
+      userId,
+      type: ReportType.MONTHLY_FREE,
+      title: `月度健康报告 - ${user?.username || userId}`,
+      content: `本报告涵盖 ${period.start.toLocaleDateString()} 至 ${period.end.toLocaleDateString()} 期间的健康数据。\n\n` +
+        `总动物数: ${userAnimals.length}\n` +
+        `平均健康评分: ${avgHealthScore.toFixed(1)}/100\n` +
+        `健康动物数: ${healthStatuses.filter((s) => s.latestHealthScore >= 80).length}\n` +
+        `需要关注: ${healthStatuses.filter((s) => s.latestHealthScore < 80 && s.latestHealthScore >= 60).length}\n` +
+        `异常动物数: ${healthStatuses.filter((s) => s.latestHealthScore < 60).length}`,
+      generatedAt: new Date(),
+      period,
+      isPaid: false,
+    };
+
+    this.reports.push(report);
+    return report;
+  }
+
+  generateOnDemandReport(userId: string, animalId?: string, period?: { start: Date; end: Date }): Report {
+    const user = this.getUser(userId);
+    const animal = animalId ? this.getAnimal(animalId) : undefined;
+    const healthStatus = animalId ? this.getAnimalHealthStatus(animalId) : undefined;
+
+    const report: Report = {
+      id: `report-${Date.now()}`,
+      userId,
+      animalId,
+      type: ReportType.ON_DEMAND_PAID,
+      title: animal
+        ? `${animal.name} - 详细健康报告`
+        : `${user?.username || userId} - 综合健康报告`,
+      content: animal && healthStatus
+        ? `动物名称: ${animal.name}\n类型: ${animal.type}\n性别: ${animal.gender}\n\n` +
+          `健康评分: ${healthStatus.latestHealthScore.toFixed(1)}/100\n` +
+          `心率: ${healthStatus.latestHeartRate || 'N/A'} bpm\n` +
+          `体温: ${healthStatus.latestTemperature || 'N/A'} °C\n` +
+          `活动量: ${healthStatus.latestActivity || 'N/A'}%\n` +
+          `HRV: ${healthStatus.latestHRV || 'N/A'}\n` +
+          `情绪: ${healthStatus.latestMood || 'N/A'}\n` +
+          `预警数量: ${healthStatus.alertCount}`
+        : `用户: ${user?.username || userId}\n动物总数: ${this.getAnimalsByUser(userId).length}`,
+      generatedAt: new Date(),
+      period,
+      isPaid: false,
+    };
+
+    this.reports.push(report);
+    return report;
+  }
+
+  // AI文案库管理
+  getAITips(type?: AITipType): AITip[] {
+    if (type) {
+      return this.aiTips.filter((t) => t.type === type && t.isActive);
+    }
+    return this.aiTips;
+  }
+
+  addAITip(tip: AITip): void {
+    this.aiTips.push(tip);
+  }
+
+  updateAITip(tip: AITip): void {
+    const index = this.aiTips.findIndex((t) => t.id === tip.id);
+    if (index !== -1) {
+      this.aiTips[index] = tip;
+    }
+  }
+
+  removeAITip(id: string): void {
+    this.aiTips = this.aiTips.filter((t) => t.id !== id);
+  }
+
+  // AI推送规则管理
+  getAIPushRules(): AIPushRule[] {
+    return this.aiPushRules.filter((r) => r.isActive);
+  }
+
+  addAIPushRule(rule: AIPushRule): void {
+    this.aiPushRules.push(rule);
+  }
+
+  updateAIPushRule(rule: AIPushRule): void {
+    const index = this.aiPushRules.findIndex((r) => r.id === rule.id);
+    if (index !== -1) {
+      this.aiPushRules[index] = rule;
+    }
+  }
+
+  removeAIPushRule(id: string): void {
+    this.aiPushRules = this.aiPushRules.filter((r) => r.id !== id);
+  }
+
+  // 导出数据
+  exportData(format: 'json' | 'csv' = 'json'): string {
+    const data = {
+      users: this.users,
+      animals: this.animals,
+      devices: this.devices,
+      medicalRecords: this.medicalRecords,
+      healthData: this.healthData,
+      healthScores: this.healthScores,
+      reports: this.reports,
+      exportDate: new Date().toISOString(),
+    };
+
+    if (format === 'json') {
+      return JSON.stringify(data, null, 2);
+    } else {
+      // CSV格式（简化版）
+      let csv = 'Type,ID,Name,Date\n';
+      this.users.forEach((u) => {
+        csv += `User,${u.id},${u.username},${u.createdAt.toISOString()}\n`;
+      });
+      this.animals.forEach((a) => {
+        csv += `Animal,${a.id},${a.name},${a.createdAt.toISOString()}\n`;
+      });
+      return csv;
+    }
   }
 }
 

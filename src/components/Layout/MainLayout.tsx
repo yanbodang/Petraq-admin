@@ -8,6 +8,10 @@ import {
   SyncOutlined,
   BankOutlined,
   SettingOutlined,
+  MobileOutlined,
+  FileTextOutlined,
+  FileOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { AppLanguage, useLocale } from '../../i18n';
 
@@ -38,6 +42,26 @@ export default function MainLayout() {
         key: '/user-animals',
         icon: <TeamOutlined />,
         label: t('menu.userAnimals'),
+      },
+      {
+        key: '/devices',
+        icon: <MobileOutlined />,
+        label: '设备管理',
+      },
+      {
+        key: '/medical-records',
+        icon: <FileTextOutlined />,
+        label: '医疗记录',
+      },
+      {
+        key: '/reports',
+        icon: <FileOutlined />,
+        label: '报告',
+      },
+      {
+        key: '/ai-tips',
+        icon: <RobotOutlined />,
+        label: 'AI文案库',
       },
       {
         key: '/sync',

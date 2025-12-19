@@ -166,6 +166,63 @@ petraq-admin/
 3. 添加用户认证和权限管理
 4. 实现真实的数据同步机制
 
+## 部署到 GitHub Pages
+
+### 自动部署（推荐）
+
+项目已配置 GitHub Actions 工作流，推送到 `main` 或 `master` 分支后会自动部署。
+
+#### 部署步骤：
+
+1. **在 GitHub 上创建仓库**
+   ```bash
+   # 如果还没有初始化 git
+   git init
+   git add .
+   git commit -m "Initial commit"
+   
+   # 添加远程仓库（替换为你的仓库地址）
+   git remote add origin https://github.com/yourusername/petraq-admin.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+2. **启用 GitHub Pages**
+   - 进入仓库的 Settings → Pages
+   - Source 选择 "GitHub Actions"
+   - 保存设置
+
+3. **配置仓库名称（重要）**
+   - 如果仓库名称不是 `petraq-admin`，需要设置环境变量：
+   - 在仓库 Settings → Secrets and variables → Actions 中添加：
+     - Name: `VITE_BASE_PATH`
+     - Value: `/your-repo-name`（你的仓库名称，带前导斜杠）
+
+4. **触发部署**
+   - 推送代码到 main 分支会自动触发部署
+   - 或手动在 Actions 标签页中运行工作流
+
+### 手动部署
+
+如果需要手动部署：
+
+```bash
+# 构建项目
+npm run build
+
+# 将 dist 目录的内容推送到 gh-pages 分支
+# 可以使用 gh-pages 工具
+npm install -g gh-pages
+gh-pages -d dist
+```
+
+### 自定义域名
+
+如果使用自定义域名：
+1. 在仓库根目录创建 `CNAME` 文件，内容为你的域名
+2. 在 GitHub Pages 设置中配置自定义域名
+3. 将 `vite.config.ts` 中的 `base` 改为 `'/'`
+
 ## 浏览器支持
 
 - Chrome (最新版本)
