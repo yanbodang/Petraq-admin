@@ -239,6 +239,18 @@ export default function UserManagement() {
       render: (date: Date) => dayjs(date).format('YYYY-MM-DD'),
     },
     {
+      title: translate('推销信息', 'Promotion Info'),
+      dataIndex: 'promotionInfo',
+      key: 'promotionInfo',
+      render: (info: string | undefined) => (
+        info ? (
+          <span title={info} style={{ maxWidth: 150, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {info}
+          </span>
+        ) : '-'
+      ),
+    },
+    {
       title: '操作',
       key: 'action',
       render: (_: any, record: User) => (
