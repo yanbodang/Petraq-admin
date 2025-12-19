@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Input, Space, Modal, Form, Select, Tag, Popconfirm, message, Tabs, Switch } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { dataManager } from '../services/dataManager';
 import { AITip, AITipType, AIPushRule } from '../types';
 import { useLocale } from '../i18n';
-import dayjs from 'dayjs';
 
-const { Search, TextArea } = Input;
+const { TextArea } = Input;
 
 export default function AITipsManagement() {
   const { translate } = useLocale();

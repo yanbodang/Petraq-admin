@@ -1,4 +1,4 @@
-import { Card, Form, Switch, Button, message, Divider, Space, Input, InputNumber, Tabs, Select, DatePicker, Table, Tag } from 'antd';
+import { Card, Form, Switch, Button, message, Divider, Space, Input, InputNumber, Tabs, Table, Tag } from 'antd';
 import { SaveOutlined, DownloadOutlined, FileTextOutlined, CustomerServiceOutlined, DollarOutlined } from '@ant-design/icons';
 import { useLocale } from '../i18n';
 import { useState } from 'react';
@@ -153,7 +153,15 @@ export default function Settings() {
             label: translate('用户设置', 'User Settings'),
             children: (
               <div>
-                <Card title={translate('付费管理', 'Payment Management')} style={{ marginBottom: 16 }} icon={<DollarOutlined />}>
+                <Card 
+                  title={
+                    <Space>
+                      <DollarOutlined />
+                      {translate('付费管理', 'Payment Management')}
+                    </Space>
+                  } 
+                  style={{ marginBottom: 16 }}
+                >
                   <Table
                     dataSource={invoices}
                     rowKey="id"
@@ -178,7 +186,15 @@ export default function Settings() {
                   </Space>
                 </Card>
 
-                <Card title={translate('数据/报告请求', 'Data/Report Requests')} style={{ marginBottom: 16 }} icon={<FileTextOutlined />}>
+                <Card 
+                  title={
+                    <Space>
+                      <FileTextOutlined />
+                      {translate('数据/报告请求', 'Data/Report Requests')}
+                    </Space>
+                  } 
+                  style={{ marginBottom: 16 }}
+                >
                   <Table
                     dataSource={dataRequests}
                     rowKey="id"
@@ -203,7 +219,14 @@ export default function Settings() {
                   </Space>
                 </Card>
 
-                <Card title={translate('客户支持', 'Customer Support')} icon={<CustomerServiceOutlined />}>
+                <Card 
+                  title={
+                    <Space>
+                      <CustomerServiceOutlined />
+                      {translate('客户支持', 'Customer Support')}
+                    </Space>
+                  }
+                >
                   <Space direction="vertical" style={{ width: '100%' }}>
                     <Button block>{translate('联系客服', 'Contact Support')}</Button>
                     <Button block>{translate('常见问题', 'FAQ')}</Button>

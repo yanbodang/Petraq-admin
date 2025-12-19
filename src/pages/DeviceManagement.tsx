@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Table, Button, Input, Space, Modal, Form, Select, Tag, Popconfirm, message, InputNumber, Switch, Progress } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, BluetoothOutlined, BatteryOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, WifiOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { dataManager } from '../services/dataManager';
 import { Device, User, PaymentType } from '../types';
 import dayjs from 'dayjs';
@@ -156,7 +156,7 @@ export default function DeviceManagement() {
         const color = level > 50 ? 'green' : level > 20 ? 'orange' : 'red';
         return (
           <Space>
-            <BatteryOutlined style={{ color }} />
+            <ThunderboltOutlined style={{ color }} />
             <Progress percent={level} size="small" status={level < 20 ? 'exception' : 'active'} />
             <span>{level}%</span>
           </Space>
@@ -168,7 +168,7 @@ export default function DeviceManagement() {
       dataIndex: 'isBluetoothConnected',
       key: 'isBluetoothConnected',
       render: (connected: boolean | undefined) => (
-        <Tag color={connected ? 'blue' : 'default'} icon={<BluetoothOutlined />}>
+        <Tag color={connected ? 'blue' : 'default'} icon={<WifiOutlined />}>
           {connected ? translate('已连接', 'Connected') : translate('未连接', 'Disconnected')}
         </Tag>
       ),

@@ -64,7 +64,6 @@ export default function Reports() {
   const handleGenerate = async () => {
     try {
       const values = await form.validateFields();
-      let report: Report;
 
       if (values.reportType === ReportType.MONTHLY_FREE) {
         const period = values.period
@@ -73,12 +72,12 @@ export default function Reports() {
               start: dayjs().subtract(1, 'month').toDate(),
               end: new Date(),
             };
-        report = dataManager.generateMonthlyReport(values.userId, period);
+        dataManager.generateMonthlyReport(values.userId, period);
       } else {
         const period = values.period
           ? { start: values.period[0].toDate(), end: values.period[1].toDate() }
           : undefined;
-        report = dataManager.generateOnDemandReport(values.userId, values.animalId, period);
+        dataManager.generateOnDemandReport(values.userId, values.animalId, period);
       }
 
       message.success(translate('报告生成成功', 'Report generated'));
