@@ -24,6 +24,8 @@ import {
   PaymentStatus,
   PaymentType,
   UserGroupType,
+  Invoice,
+  DataRequest,
 } from '../types';
 
 class DataManager {
@@ -39,6 +41,8 @@ class DataManager {
   private reports: Report[] = [];
   private aiTips: AITip[] = [];
   private aiPushRules: AIPushRule[] = [];
+  private invoices: Invoice[] = [];
+  private dataRequests: DataRequest[] = [];
 
   constructor() {
     this.setupMockData();
@@ -1131,6 +1135,52 @@ class DataManager {
 
   removeAIPushRule(id: string): void {
     this.aiPushRules = this.aiPushRules.filter((r) => r.id !== id);
+  }
+
+  // 发票管理
+  getInvoices(userId?: string): Invoice[] {
+    if (userId) {
+      return this.invoices.filter((inv) => inv.userId === userId);
+    }
+    return this.invoices;
+  }
+
+  addInvoice(invoice: Invoice): void {
+    this.invoices.push(invoice);
+  }
+
+  updateInvoice(invoice: Invoice): void {
+    const index = this.invoices.findIndex((inv) => inv.id === invoice.id);
+    if (index !== -1) {
+      this.invoices[index] = invoice;
+    }
+  }
+
+  removeInvoice(id: string): void {
+    this.invoices = this.invoices.filter((inv) => inv.id !== id);
+  }
+
+  // 数据请求管理
+  getDataRequests(userId?: string): DataRequest[] {
+    if (userId) {
+      return this.dataRequests.filter((req) => req.userId === userId);
+    }
+    return this.dataRequests;
+  }
+
+  addDataRequest(request: DataRequest): void {
+    this.dataRequests.push(request);
+  }
+
+  updateDataRequest(request: DataRequest): void {
+    const index = this.dataRequests.findIndex((req) => req.id === request.id);
+    if (index !== -1) {
+      this.dataRequests[index] = request;
+    }
+  }
+
+  removeDataRequest(id: string): void {
+    this.dataRequests = this.dataRequests.filter((req) => req.id !== id);
   }
 
   // 导出数据

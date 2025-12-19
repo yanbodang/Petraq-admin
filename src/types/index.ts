@@ -287,3 +287,52 @@ export interface AITip {
   usageCount: number; // 使用次数
   createdAt: Date;
 }
+
+// 发票状态
+export enum InvoiceStatus {
+  PENDING = '待支付',
+  PAID = '已支付',
+  OVERDUE = '已逾期',
+  CANCELLED = '已取消',
+}
+
+// 发票
+export interface Invoice {
+  id: string;
+  userId: string;
+  amount: number;
+  type: string; // 月费、年费等
+  status: InvoiceStatus;
+  issueDate: Date;
+  dueDate: Date;
+  paidDate?: Date;
+  description?: string;
+  invoiceNumber: string;
+}
+
+// 数据请求类型
+export enum DataRequestType {
+  DATA_EXPORT = '数据导出',
+  REPORT_GENERATION = '报告生成',
+  DATA_ANALYSIS = '数据分析',
+}
+
+// 数据请求状态
+export enum DataRequestStatus {
+  PENDING = '待处理',
+  PROCESSING = '处理中',
+  COMPLETED = '已完成',
+  FAILED = '失败',
+}
+
+// 数据请求
+export interface DataRequest {
+  id: string;
+  userId: string;
+  type: DataRequestType;
+  status: DataRequestStatus;
+  requestDate: Date;
+  completedDate?: Date;
+  description?: string;
+  resultUrl?: string; // 结果文件URL
+}
