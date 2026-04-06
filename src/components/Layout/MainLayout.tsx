@@ -1,19 +1,22 @@
 import { useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Select, theme } from 'antd';
+import { Avatar, Button, Layout, Menu, Select, Space, theme } from 'antd';
 import {
   DashboardOutlined,
+  LogoutOutlined,
   UserOutlined,
   TeamOutlined,
   SyncOutlined,
   BankOutlined,
   SettingOutlined,
   MobileOutlined,
+  CreditCardOutlined,
   FileTextOutlined,
   FileOutlined,
   RobotOutlined,
 } from '@ant-design/icons';
 import { AppLanguage, useLocale } from '../../i18n';
+import { useAuth } from '../../auth/AuthContext';
 
 const { Header, Sider, Content } = Layout;
 
@@ -22,6 +25,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, language, setLanguage, languageOptions } = useLocale();
+  const { currentUser, logout } = useAuth();
   const {
     token: { colorBgContainer },
   } = theme.useToken();
@@ -47,6 +51,11 @@ export default function MainLayout() {
         key: '/devices',
         icon: <MobileOutlined />,
         label: '设备管理',
+      },
+      {
+        key: '/subscriptions',
+        icon: <CreditCardOutlined />,
+        label: '订阅管理',
       },
       {
         key: '/medical-records',
@@ -122,7 +131,7 @@ export default function MainLayout() {
           }}
         >
           <h1 style={{ margin: 0, fontSize: 20 }}>{t('app.title')}</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Select
               size="small"
               value={language}
@@ -131,6 +140,22 @@ export default function MainLayout() {
               style={{ width: 140 }}
               aria-label={t('header.language')}
             />
+            <Space size={10}>
+              <Avatar style={{ backgroundColor: '#1677ff' }} icon={<UserOutlined />} />
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? 'Mock User'}</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{currentUser?.role ?? '未登录'}</div>
+              </div>
+            </Space>
+            <Button
+              icon={<LogoutOutlined />}
+              onClick={() => {
+                logout();
+                navigate('/login', { replace: true });
+              }}
+            >
+              退出
+            </Button>
           </div>
         </Header>
         <Content

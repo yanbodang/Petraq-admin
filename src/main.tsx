@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { ConfigProvider } from 'antd';
 import App from './App';
 import { LocaleProvider, useLocale } from './i18n';
+import { AuthProvider } from './auth/AuthContext';
 import './index.css';
 
 function AppWithProviders() {
@@ -10,7 +11,9 @@ function AppWithProviders() {
 
   return (
     <ConfigProvider locale={antdLocale}>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </ConfigProvider>
   );
 }
@@ -22,4 +25,3 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </LocaleProvider>
   </React.StrictMode>
 );
-

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Table, Select, Card, Tag, Space, Button, message, Modal, Form, Input, InputNumber, Tabs, Row, Col, Statistic, Progress, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, LineChartOutlined } from '@ant-design/icons';
 import { dataManager } from '../services/dataManager';
-import { Animal, User, AnimalHealthStatus } from '../types';
+import { Animal, User, AnimalHealthStatus, SubscriptionStatus } from '../types';
 import dayjs from 'dayjs';
 import AnimalHealthChart from '../components/AnimalHealthChart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -66,6 +66,7 @@ export default function UserAnimals() {
       weight: animal.weight,
       age: animal.age,
       birthday: animal.birthday ? dayjs(animal.birthday) : undefined,
+      deviceId: animal.deviceId,
     });
     setIsModalVisible(true);
   };
@@ -89,6 +90,7 @@ export default function UserAnimals() {
           ...editingAnimal,
           ...values,
           birthday: values.birthday ? values.birthday.toDate() : editingAnimal.birthday,
+          deviceId: values.deviceId,
         };
         dataManager.updateAnimal(updated);
         message.success('更新成功');
@@ -104,6 +106,7 @@ export default function UserAnimals() {
           birthday: values.birthday ? values.birthday.toDate() : undefined,
           createdAt: new Date(),
           lastSyncAt: new Date(),
+          deviceId: values.deviceId,
         };
         dataManager.addAnimal(newAnimal);
         message.success('添加成功');
@@ -130,6 +133,24 @@ export default function UserAnimals() {
   };
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
+  const devices = dataManager.getDevices();
+  const availableDevices = devices.filter(
+    (device) => !device.animalId || device.animalId === editingAnimal?.id
+  );
+
+  const getLinkedDevice = (animal: Animal) => {
+    if (animal.deviceId) {
+      return dataManager.getDevice(animal.deviceId);
+    }
+    return devices.find((device) => device.animalId === animal.id);
+  };
+
+  const getAnimalSubscription = (animal: Animal) => {
+    if (animal.subscriptionId) {
+      return dataManager.getSubscription(animal.subscriptionId);
+    }
+    return dataManager.getSubscriptionByAnimal(animal.id);
+  };
 
   const columns = [
     {
@@ -163,6 +184,58 @@ export default function UserAnimals() {
       dataIndex: 'birthday',
       key: 'birthday',
       render: (date: Date | undefined) => date ? dayjs(date).format('YYYY-MM-DD') : '-',
+    },
+    {
+      title: translate('配套硬件', 'Device'),
+      key: 'device',
+      render: (_: unknown, record: Animal) => {
+        const device = getLinkedDevice(record);
+        if (!device) {
+          return <Tag>{translate('未绑定', 'Unbound')}</Tag>;
+        }
+
+        return (
+          <Space direction="vertical" size={4}>
+            <Tag color={device.isActivated ? 'green' : 'default'}>
+              {device.code}
+            </Tag>
+            <span>{device.isActivated ? translate('已激活', 'Activated') : translate('未激活', 'Inactive')}</span>
+          </Space>
+        );
+      },
+    },
+    {
+      title: translate('订阅', 'Subscription'),
+      key: 'subscription',
+      render: (_: unknown, record: Animal) => {
+        const subscription = getAnimalSubscription(record);
+        if (!subscription) {
+          return <Tag>{translate('仅最近快照', 'Snapshot only')}</Tag>;
+        }
+
+        const colorMap: Record<string, string> = {
+          待激活: 'default',
+          'Trial中': 'gold',
+          已付费: 'green',
+          已过期: 'red',
+        };
+
+        const endTime = subscription.trialEndsAt || subscription.currentPeriodEnd;
+
+        return (
+          <Space direction="vertical" size={4}>
+            <Space>
+              <Tag color={colorMap[subscription.status] || 'default'}>
+                {subscription.status}
+              </Tag>
+              <Tag>{subscription.plan}</Tag>
+            </Space>
+            <span>
+              {endTime ? dayjs(endTime).format('YYYY-MM-DD') : '-'}
+            </span>
+          </Space>
+        );
+      },
     },
     {
       title: translate('创建时间', 'Created At'),
@@ -286,6 +359,15 @@ export default function UserAnimals() {
       : 0,
   };
 
+  const subscriptionStats = {
+    paid: animals.filter((animal) => getAnimalSubscription(animal)?.status === SubscriptionStatus.ACTIVE).length,
+    trial: animals.filter((animal) => getAnimalSubscription(animal)?.status === SubscriptionStatus.TRIALING).length,
+    snapshotOnly: animals.filter((animal) => {
+      const subscription = getAnimalSubscription(animal);
+      return !subscription || ![SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING].includes(subscription.status);
+    }).length,
+  };
+
   const getHealthScoreColor = (score: number) => {
     if (score >= 80) return '#52c41a';
     if (score >= 60) return '#faad14';
@@ -342,6 +424,9 @@ export default function UserAnimals() {
             <span>{translate('用户', 'User')}：<strong>{selectedUser.username}</strong></span>
             <span>{translate('邮箱', 'Email')}：{selectedUser.email}</span>
             <span>{translate('动物数量', 'Animals')}：<strong>{animals.length}</strong></span>
+            <span>{translate('已付费', 'Paid')}：<strong>{subscriptionStats.paid}</strong></span>
+            <span>{translate('Trial中', 'Trialing')}：<strong>{subscriptionStats.trial}</strong></span>
+            <span>{translate('仅最近快照', 'Snapshot only')}：<strong>{subscriptionStats.snapshotOnly}</strong></span>
           </Space>
         </Card>
       )}
@@ -439,6 +524,18 @@ export default function UserAnimals() {
             label={translate('生日', 'Birthday')}
           >
             <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name="deviceId"
+            label={translate('配套硬件', 'Device')}
+          >
+            <Select placeholder={translate('请选择硬件（可选）', 'Select device (optional)')} allowClear>
+              {availableDevices.map((device) => (
+                <Select.Option key={device.id} value={device.id}>
+                  {device.code} {device.isActivated ? `(${translate('已激活', 'Activated')})` : `(${translate('未激活', 'Inactive')})`}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

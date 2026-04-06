@@ -35,6 +35,21 @@ export enum PaymentType {
   ONE_TIME = '一次性',
 }
 
+// 订阅方案
+export enum SubscriptionPlan {
+  TRIAL = 'Trial(5天)',
+  MONTHLY = '月付',
+  YEARLY = '年付',
+}
+
+// 订阅状态
+export enum SubscriptionStatus {
+  PENDING = '待激活',
+  TRIALING = 'Trial中',
+  ACTIVE = '已付费',
+  EXPIRED = '已过期',
+}
+
 // 数据同步状态
 export enum SyncStatus {
   SUCCESS = '成功',
@@ -74,6 +89,8 @@ export interface User {
   deviceCount?: number; // 关联硬件数
   paidDeviceCount?: number; // 已付费硬件数
   unpaidDeviceCount?: number; // 未付费硬件数
+  trialDeviceCount?: number; // Trial中的硬件数
+  subscriptionCount?: number; // 当前有效订阅数
   promotionInfo?: string; // 用户推销相关信息
 }
 
@@ -97,6 +114,8 @@ export interface Device {
   isActivated: boolean; // 是否激活
   isPaid: boolean; // 是否付费
   paymentType?: PaymentType; // 付费类型
+  subscriptionId?: string; // 关联订阅ID
+  activationDate?: Date; // 激活时间
   batteryLevel?: number; // 电量百分比 0-100
   isBluetoothConnected?: boolean; // 是否蓝牙连接
   lastSyncAt?: Date; // 最后同步时间
@@ -116,6 +135,7 @@ export interface Animal {
   createdAt: Date;
   lastSyncAt?: Date;
   deviceId?: string; // 关联的设备ID
+  subscriptionId?: string; // 关联订阅ID
 }
 
 // 数据同步记录
@@ -139,6 +159,24 @@ export interface SystemStats {
   totalOrganizations: number;
   todaySyncCount: number;
   failedSyncCount: number;
+  activeSubscriptions: number;
+  trialSubscriptions: number;
+  snapshotOnlyAnimals: number;
+}
+
+// 动物级订阅
+export interface AnimalSubscription {
+  id: string;
+  userId: string;
+  animalId: string;
+  deviceId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  createdAt: Date;
+  activatedAt?: Date;
+  currentPeriodStart?: Date;
+  currentPeriodEnd?: Date;
+  trialEndsAt?: Date;
 }
 
 // 用户权限

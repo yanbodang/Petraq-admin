@@ -23,6 +23,9 @@ import {
   AIPushRule,
   PaymentStatus,
   PaymentType,
+  SubscriptionPlan,
+  SubscriptionStatus,
+  AnimalSubscription,
   UserGroupType,
   Invoice,
   DataRequest,
@@ -41,6 +44,7 @@ class DataManager {
   private reports: Report[] = [];
   private aiTips: AITip[] = [];
   private aiPushRules: AIPushRule[] = [];
+  private subscriptions: AnimalSubscription[] = [];
   private invoices: Invoice[] = [];
   private dataRequests: DataRequest[] = [];
 
@@ -60,19 +64,26 @@ class DataManager {
 
   addUser(user: User): void {
     this.users.push(user);
+    this.refreshDerivedState();
   }
 
   updateUser(user: User): void {
     const index = this.users.findIndex((u) => u.id === user.id);
     if (index !== -1) {
       this.users[index] = user;
+      this.refreshDerivedState();
     }
   }
 
   removeUser(id: string): void {
     this.users = this.users.filter((u) => u.id !== id);
-    // 删除用户时，也删除其下的动物
-    this.animals = this.animals.filter((a) => a.userId !== id);
+    const removedAnimalIds = new Set(this.animals.filter((animal) => animal.userId === id).map((animal) => animal.id));
+    this.animals = this.animals.filter((animal) => animal.userId !== id);
+    this.devices = this.devices.filter((device) => device.userId !== id && !removedAnimalIds.has(device.animalId || ''));
+    this.subscriptions = this.subscriptions.filter(
+      (subscription) => subscription.userId !== id && !removedAnimalIds.has(subscription.animalId)
+    );
+    this.refreshDerivedState();
   }
 
   // 组织管理
@@ -133,39 +144,76 @@ class DataManager {
   }
 
   addAnimal(animal: Animal): void {
+    if (animal.deviceId) {
+      this.animals = this.animals.map((item) =>
+        item.deviceId === animal.deviceId
+          ? {
+              ...item,
+              deviceId: undefined,
+              subscriptionId: undefined,
+            }
+          : item
+      );
+      this.subscriptions = this.subscriptions.filter((subscription) => subscription.deviceId !== animal.deviceId);
+    }
     this.animals.push(animal);
-    // 更新用户的动物数量
-    const user = this.users.find((u) => u.id === animal.userId);
-    if (user) {
-      user.animalCount = (user.animalCount || 0) + 1;
-      // 更新组织的动物数量
-      if (user.organizationId) {
-        this.updateOrganizationAnimalCount(user.organizationId);
+    if (animal.deviceId) {
+      const device = this.devices.find((item) => item.id === animal.deviceId);
+      if (device) {
+        device.animalId = animal.id;
+        device.userId = animal.userId;
+        this.ensureSubscriptionForDevice(device);
       }
     }
+    this.refreshDerivedState();
   }
 
   updateAnimal(animal: Animal): void {
     const index = this.animals.findIndex((a) => a.id === animal.id);
     if (index !== -1) {
+      if (animal.deviceId) {
+        this.animals = this.animals.map((item) =>
+          item.id !== animal.id && item.deviceId === animal.deviceId
+            ? {
+                ...item,
+                deviceId: undefined,
+                subscriptionId: undefined,
+              }
+            : item
+        );
+        this.subscriptions = this.subscriptions.filter(
+          (subscription) => subscription.animalId === animal.id || subscription.deviceId !== animal.deviceId
+        );
+      }
       this.animals[index] = animal;
+      if (animal.deviceId) {
+        const device = this.devices.find((item) => item.id === animal.deviceId);
+        if (device) {
+          device.animalId = animal.id;
+          device.userId = animal.userId;
+          this.ensureSubscriptionForDevice(device);
+        }
+      }
+      this.refreshDerivedState();
     }
   }
 
   removeAnimal(id: string): void {
-    const animal = this.animals.find((a) => a.id === id);
-    if (animal) {
-      this.animals = this.animals.filter((a) => a.id !== id);
-      // 更新用户的动物数量
-      const user = this.users.find((u) => u.id === animal.userId);
-      if (user && user.animalCount) {
-        user.animalCount = Math.max(0, user.animalCount - 1);
-        // 更新组织的动物数量
-        if (user.organizationId) {
-          this.updateOrganizationAnimalCount(user.organizationId);
-        }
-      }
-    }
+    this.animals = this.animals.filter((animal) => animal.id !== id);
+    this.devices = this.devices.map((device) =>
+      device.animalId === id
+        ? {
+            ...device,
+            animalId: undefined,
+            userId: undefined,
+            subscriptionId: undefined,
+            isPaid: false,
+            paymentType: undefined,
+          }
+        : device
+    );
+    this.subscriptions = this.subscriptions.filter((subscription) => subscription.animalId !== id);
+    this.refreshDerivedState();
   }
 
   // 更新组织的动物数量统计
@@ -175,6 +223,161 @@ class DataManager {
     if (org) {
       org.animalCount = orgAnimals.length;
     }
+  }
+
+  private getPaymentTypeForPlan(plan: SubscriptionPlan): PaymentType | undefined {
+    switch (plan) {
+      case SubscriptionPlan.MONTHLY:
+        return PaymentType.MONTHLY;
+      case SubscriptionPlan.YEARLY:
+        return PaymentType.YEARLY;
+      default:
+        return undefined;
+    }
+  }
+
+  private refreshDerivedState(): void {
+    this.animals = this.animals.map((animal) => ({
+      ...animal,
+      subscriptionId: undefined,
+    }));
+
+    this.devices = this.devices.map((device) => ({
+      ...device,
+      subscriptionId: undefined,
+      isPaid: false,
+      paymentType: undefined,
+    }));
+
+    const refreshedAnimalMap = new Map(this.animals.map((animal) => [animal.id, animal]));
+    const refreshedDeviceMap = new Map(this.devices.map((device) => [device.id, device]));
+
+    this.animals.forEach((animal) => {
+      if (!animal.deviceId) {
+        return;
+      }
+
+      const device = refreshedDeviceMap.get(animal.deviceId);
+      if (device) {
+        device.animalId = animal.id;
+        device.userId = animal.userId;
+      }
+    });
+
+    this.subscriptions = this.subscriptions.filter((subscription) => {
+      const animal = refreshedAnimalMap.get(subscription.animalId);
+      const device = refreshedDeviceMap.get(subscription.deviceId);
+
+      if (!animal || !device) {
+        return false;
+      }
+
+      subscription.userId = animal.userId;
+      animal.subscriptionId = subscription.id;
+      animal.deviceId = device.id;
+      device.userId = animal.userId;
+      device.animalId = animal.id;
+      device.subscriptionId = subscription.id;
+      device.isActivated = true;
+      device.isPaid = subscription.status === SubscriptionStatus.ACTIVE;
+      device.paymentType = this.getPaymentTypeForPlan(subscription.plan);
+      return true;
+    });
+
+    this.devices.forEach((device) => {
+      if (!device.subscriptionId && !device.isActivated) {
+        device.paymentType = undefined;
+      }
+
+      const animal = device.animalId ? refreshedAnimalMap.get(device.animalId) : undefined;
+      if (animal) {
+        device.userId = animal.userId;
+        animal.deviceId = device.id;
+      }
+    });
+
+    this.users = this.users.map((user) => {
+      const userAnimals = this.animals.filter((animal) => animal.userId === user.id);
+      const userDevices = this.devices.filter((device) => device.userId === user.id);
+      const userSubscriptions = this.subscriptions.filter((subscription) => subscription.userId === user.id);
+      const activeSubscriptions = userSubscriptions.filter((subscription) => subscription.status === SubscriptionStatus.ACTIVE);
+      const trialSubscriptions = userSubscriptions.filter((subscription) => subscription.status === SubscriptionStatus.TRIALING);
+      const expiredSubscriptions = userSubscriptions.filter((subscription) => subscription.status === SubscriptionStatus.EXPIRED);
+
+      const nextPaymentStatus =
+        activeSubscriptions.length > 0
+          ? PaymentStatus.PAID
+          : expiredSubscriptions.length > 0
+            ? PaymentStatus.OVERDUE
+            : trialSubscriptions.length > 0
+              ? PaymentStatus.FREE
+              : userDevices.length > 0
+                ? PaymentStatus.UNPAID
+                : (user.paymentStatus || PaymentStatus.FREE);
+
+      return {
+        ...user,
+        animalCount: userAnimals.length,
+        deviceCount: userDevices.length,
+        paidDeviceCount: activeSubscriptions.length,
+        trialDeviceCount: trialSubscriptions.length,
+        unpaidDeviceCount: Math.max(userDevices.length - activeSubscriptions.length - trialSubscriptions.length, 0),
+        subscriptionCount: activeSubscriptions.length + trialSubscriptions.length,
+        hasOverdue: expiredSubscriptions.length > 0,
+        paymentStatus: nextPaymentStatus,
+      };
+    });
+
+    this.organizations.forEach((org) => {
+      this.updateOrganizationAnimalCount(org.id);
+      org.userCount = this.getUsersByOrganization(org.id).length;
+    });
+  }
+
+  private ensureSubscriptionForDevice(device: Device): void {
+    if (!device.isActivated || !device.animalId) {
+      return;
+    }
+
+    const animal = this.animals.find((item) => item.id === device.animalId);
+    if (!animal) {
+      return;
+    }
+
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const existing = this.subscriptions.find(
+      (subscription) => subscription.deviceId === device.id || subscription.animalId === animal.id
+    );
+
+    if (existing) {
+      existing.userId = animal.userId;
+      existing.animalId = animal.id;
+      existing.deviceId = device.id;
+      if (existing.status === SubscriptionStatus.PENDING) {
+        existing.plan = SubscriptionPlan.TRIAL;
+        existing.status = SubscriptionStatus.TRIALING;
+        existing.activatedAt = now;
+        existing.currentPeriodStart = now;
+        existing.currentPeriodEnd = trialEndsAt;
+        existing.trialEndsAt = trialEndsAt;
+      }
+      return;
+    }
+
+    this.subscriptions.push({
+      id: `subscription-${Date.now()}-${device.id}`,
+      userId: animal.userId,
+      animalId: animal.id,
+      deviceId: device.id,
+      plan: SubscriptionPlan.TRIAL,
+      status: SubscriptionStatus.TRIALING,
+      createdAt: now,
+      activatedAt: now,
+      currentPeriodStart: now,
+      currentPeriodEnd: trialEndsAt,
+      trialEndsAt,
+    });
   }
 
   // 数据同步管理
@@ -241,6 +444,19 @@ class DataManager {
       (r) => r.startTime >= today && r.status === SyncStatus.SUCCESS
     ).length;
     const failedSyncs = this.syncRecords.filter((r) => r.status === SyncStatus.FAILED).length;
+    const activeSubscriptions = this.subscriptions.filter(
+      (subscription) => subscription.status === SubscriptionStatus.ACTIVE
+    ).length;
+    const trialSubscriptions = this.subscriptions.filter(
+      (subscription) => subscription.status === SubscriptionStatus.TRIALING
+    ).length;
+    const snapshotOnlyAnimals = this.animals.filter((animal) => {
+      if (!animal.subscriptionId) {
+        return true;
+      }
+      const subscription = this.subscriptions.find((item) => item.id === animal.subscriptionId);
+      return !subscription || ![SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING].includes(subscription.status);
+    }).length;
 
     return {
       totalUsers: this.users.length,
@@ -249,6 +465,9 @@ class DataManager {
       totalOrganizations: this.organizations.length,
       todaySyncCount: todaySyncs,
       failedSyncCount: failedSyncs,
+      activeSubscriptions,
+      trialSubscriptions,
+      snapshotOnlyAnimals,
     };
   }
 
@@ -403,6 +622,7 @@ class DataManager {
           const deviceId = `device-${user.id}-${i}`;
           const birthday = new Date(Date.now() - (Math.floor(Math.random() * 10) + 1) * 365 * 24 * 3600000);
           const age = Math.floor((Date.now() - birthday.getTime()) / (365 * 24 * 3600000));
+          const activationDate = new Date(Date.now() - Math.random() * 20 * 24 * 3600000);
           
           // 创建设备
           const device: Device = {
@@ -411,17 +631,18 @@ class DataManager {
             userId: user.id,
             animalId: animalId,
             isActivated: true,
-            isPaid: i < (user.paidDeviceCount || 0),
-            paymentType: i < (user.paidDeviceCount || 0) ? PaymentType.MONTHLY : undefined,
+            isPaid: false,
+            paymentType: undefined,
             batteryLevel: Math.floor(Math.random() * 40) + 60, // 60-100%
             isBluetoothConnected: Math.random() > 0.3,
             lastSyncAt: new Date(Date.now() - Math.random() * 24 * 3600000),
             createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000),
+            activationDate,
           };
           this.devices.push(device);
 
           // 创建动物
-          this.animals.push({
+          const animal: Animal = {
             id: animalId,
             userId: user.id,
             name: `${animalTypes[userIndex % animalTypes.length]}${String(i + 1).padStart(3, '0')}`,
@@ -433,7 +654,59 @@ class DataManager {
             deviceId: deviceId,
             createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 3600000),
             lastSyncAt: new Date(Date.now() - Math.random() * 24 * 3600000),
-          });
+          };
+          this.animals.push(animal);
+
+          if (i < (user.paidDeviceCount || 0)) {
+            const plan = i % 2 === 0 ? SubscriptionPlan.YEARLY : SubscriptionPlan.MONTHLY;
+            const currentPeriodStart = new Date(activationDate.getTime() - (i % 2 === 0 ? 180 : 12) * 24 * 3600000);
+            const currentPeriodEnd = new Date(
+              currentPeriodStart.getTime() + (plan === SubscriptionPlan.YEARLY ? 365 : 30) * 24 * 3600000
+            );
+
+            this.subscriptions.push({
+              id: `subscription-${animalId}`,
+              userId: user.id,
+              animalId,
+              deviceId,
+              plan,
+              status: SubscriptionStatus.ACTIVE,
+              createdAt: activationDate,
+              activatedAt: activationDate,
+              currentPeriodStart,
+              currentPeriodEnd,
+            });
+          } else if (i === (user.paidDeviceCount || 0)) {
+            const trialEndsAt = new Date(Date.now() + 5 * 24 * 3600000);
+            this.subscriptions.push({
+              id: `subscription-${animalId}`,
+              userId: user.id,
+              animalId,
+              deviceId,
+              plan: SubscriptionPlan.TRIAL,
+              status: SubscriptionStatus.TRIALING,
+              createdAt: activationDate,
+              activatedAt: activationDate,
+              currentPeriodStart: activationDate,
+              currentPeriodEnd: trialEndsAt,
+              trialEndsAt,
+            });
+          } else if (user.id === 'user-3' && i === (user.paidDeviceCount || 0) + 1) {
+            const expiredStart = new Date(activationDate.getTime() - 35 * 24 * 3600000);
+            const expiredEnd = new Date(Date.now() - 3 * 24 * 3600000);
+            this.subscriptions.push({
+              id: `subscription-${animalId}`,
+              userId: user.id,
+              animalId,
+              deviceId,
+              plan: SubscriptionPlan.MONTHLY,
+              status: SubscriptionStatus.EXPIRED,
+              createdAt: activationDate,
+              activatedAt: activationDate,
+              currentPeriodStart: expiredStart,
+              currentPeriodEnd: expiredEnd,
+            });
+          }
 
           // 为部分动物创建医疗记录
           if (Math.random() > 0.7) {
@@ -548,6 +821,8 @@ class DataManager {
         createdAt: new Date(),
       },
     ];
+
+    this.refreshDerivedState();
   }
 
   // 生成初始健康数据
@@ -916,83 +1191,128 @@ class DataManager {
   }
 
   addDevice(device: Device): void {
-    this.devices.push(device);
-    // 更新用户的设备数量
-    if (device.userId) {
-      const user = this.users.find((u) => u.id === device.userId);
-      if (user) {
-        user.deviceCount = (user.deviceCount || 0) + 1;
-        if (device.isPaid) {
-          user.paidDeviceCount = (user.paidDeviceCount || 0) + 1;
-        } else {
-          user.unpaidDeviceCount = (user.unpaidDeviceCount || 0) + 1;
-        }
-      }
+    if (device.animalId) {
+      this.devices = this.devices.map((item) =>
+        item.animalId === device.animalId
+          ? {
+              ...item,
+              animalId: undefined,
+              subscriptionId: undefined,
+              isPaid: false,
+              paymentType: undefined,
+            }
+          : item
+      );
+      this.subscriptions = this.subscriptions.filter((subscription) => subscription.animalId !== device.animalId);
     }
+    this.devices.push(device);
+    this.ensureSubscriptionForDevice(device);
+    this.refreshDerivedState();
   }
 
   updateDevice(device: Device): void {
     const index = this.devices.findIndex((d) => d.id === device.id);
     if (index !== -1) {
-      const oldDevice = this.devices[index];
-      this.devices[index] = device;
-      // 更新用户设备统计
-      if (oldDevice.userId && oldDevice.userId !== device.userId) {
-        // 用户变更
-        if (oldDevice.userId) {
-          const oldUser = this.users.find((u) => u.id === oldDevice.userId);
-          if (oldUser) {
-            oldUser.deviceCount = Math.max(0, (oldUser.deviceCount || 0) - 1);
-            if (oldDevice.isPaid) {
-              oldUser.paidDeviceCount = Math.max(0, (oldUser.paidDeviceCount || 0) - 1);
-            } else {
-              oldUser.unpaidDeviceCount = Math.max(0, (oldUser.unpaidDeviceCount || 0) - 1);
-            }
-          }
-        }
-        if (device.userId) {
-          const newUser = this.users.find((u) => u.id === device.userId);
-          if (newUser) {
-            newUser.deviceCount = (newUser.deviceCount || 0) + 1;
-            if (device.isPaid) {
-              newUser.paidDeviceCount = (newUser.paidDeviceCount || 0) + 1;
-            } else {
-              newUser.unpaidDeviceCount = (newUser.unpaidDeviceCount || 0) + 1;
-            }
-          }
-        }
-      } else if (oldDevice.isPaid !== device.isPaid && device.userId) {
-        // 付费状态变更
-        const user = this.users.find((u) => u.id === device.userId);
-        if (user) {
-          if (oldDevice.isPaid && !device.isPaid) {
-            user.paidDeviceCount = Math.max(0, (user.paidDeviceCount || 0) - 1);
-            user.unpaidDeviceCount = (user.unpaidDeviceCount || 0) + 1;
-          } else if (!oldDevice.isPaid && device.isPaid) {
-            user.unpaidDeviceCount = Math.max(0, (user.unpaidDeviceCount || 0) - 1);
-            user.paidDeviceCount = (user.paidDeviceCount || 0) + 1;
-          }
-        }
+      if (device.animalId) {
+        this.devices = this.devices.map((item) =>
+          item.id !== device.id && item.animalId === device.animalId
+            ? {
+                ...item,
+                animalId: undefined,
+                subscriptionId: undefined,
+                isPaid: false,
+                paymentType: undefined,
+              }
+            : item
+        );
+        this.subscriptions = this.subscriptions.filter(
+          (subscription) => subscription.deviceId === device.id || subscription.animalId !== device.animalId
+        );
       }
+      this.devices[index] = device;
+      if (device.isActivated && device.animalId) {
+        this.ensureSubscriptionForDevice(device);
+      } else {
+        this.subscriptions = this.subscriptions.map((subscription) =>
+          subscription.deviceId === device.id
+            ? {
+                ...subscription,
+                status: SubscriptionStatus.EXPIRED,
+                currentPeriodEnd: new Date(),
+              }
+            : subscription
+        );
+      }
+      this.refreshDerivedState();
     }
   }
 
   removeDevice(id: string): void {
-    const device = this.devices.find((d) => d.id === id);
-    if (device) {
-      this.devices = this.devices.filter((d) => d.id !== id);
-      if (device.userId) {
-        const user = this.users.find((u) => u.id === device.userId);
-        if (user) {
-          user.deviceCount = Math.max(0, (user.deviceCount || 0) - 1);
-          if (device.isPaid) {
-            user.paidDeviceCount = Math.max(0, (user.paidDeviceCount || 0) - 1);
-          } else {
-            user.unpaidDeviceCount = Math.max(0, (user.unpaidDeviceCount || 0) - 1);
+    this.devices = this.devices.filter((device) => device.id !== id);
+    this.subscriptions = this.subscriptions.filter((subscription) => subscription.deviceId !== id);
+    this.animals = this.animals.map((animal) =>
+      animal.deviceId === id
+        ? {
+            ...animal,
+            deviceId: undefined,
+            subscriptionId: undefined,
           }
-        }
-      }
+        : animal
+    );
+    this.refreshDerivedState();
+  }
+
+  // 动物订阅管理
+  getSubscriptions(userId?: string): AnimalSubscription[] {
+    const subscriptions = userId
+      ? this.subscriptions.filter((subscription) => subscription.userId === userId)
+      : this.subscriptions;
+
+    return [...subscriptions].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  getSubscription(id: string): AnimalSubscription | undefined {
+    return this.subscriptions.find((subscription) => subscription.id === id);
+  }
+
+  getSubscriptionByAnimal(animalId: string): AnimalSubscription | undefined {
+    return this.subscriptions.find((subscription) => subscription.animalId === animalId);
+  }
+
+  private replaceConflictingSubscriptions(subscription: AnimalSubscription): void {
+    this.subscriptions = this.subscriptions.filter(
+      (item) =>
+        item.id === subscription.id ||
+        (item.animalId !== subscription.animalId && item.deviceId !== subscription.deviceId)
+    );
+  }
+
+  addSubscription(subscription: AnimalSubscription): void {
+    this.replaceConflictingSubscriptions(subscription);
+    const index = this.subscriptions.findIndex((item) => item.id === subscription.id);
+    if (index !== -1) {
+      this.subscriptions[index] = subscription;
+    } else {
+      this.subscriptions.push(subscription);
     }
+    this.refreshDerivedState();
+  }
+
+  updateSubscription(subscription: AnimalSubscription): void {
+    const index = this.subscriptions.findIndex((item) => item.id === subscription.id);
+    if (index !== -1) {
+      this.replaceConflictingSubscriptions(subscription);
+      const refreshedIndex = this.subscriptions.findIndex((item) => item.id === subscription.id);
+      this.subscriptions[refreshedIndex] = subscription;
+      this.refreshDerivedState();
+    } else {
+      this.addSubscription(subscription);
+    }
+  }
+
+  removeSubscription(id: string): void {
+    this.subscriptions = this.subscriptions.filter((subscription) => subscription.id !== id);
+    this.refreshDerivedState();
   }
 
   // 医疗记录管理
@@ -1189,6 +1509,7 @@ class DataManager {
       users: this.users,
       animals: this.animals,
       devices: this.devices,
+      subscriptions: this.subscriptions,
       medicalRecords: this.medicalRecords,
       healthData: this.healthData,
       healthScores: this.healthScores,

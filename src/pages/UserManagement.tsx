@@ -108,7 +108,9 @@ export default function UserManagement() {
           hasOverdue: values.hasOverdue || false,
           deviceCount: 0,
           paidDeviceCount: 0,
+          trialDeviceCount: 0,
           unpaidDeviceCount: 0,
+          subscriptionCount: 0,
           promotionInfo: values.promotionInfo,
         };
         dataManager.addUser(newUser);
@@ -222,6 +224,7 @@ export default function UserManagement() {
         <Space>
           <span>总: {record.deviceCount || 0}</span>
           <span>已付费: {record.paidDeviceCount || 0}</span>
+          <span>Trial: {record.trialDeviceCount || 0}</span>
           <span>未付费: {record.unpaidDeviceCount || 0}</span>
         </Space>
       ),

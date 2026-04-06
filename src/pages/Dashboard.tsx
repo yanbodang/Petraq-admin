@@ -210,6 +210,36 @@ export default function Dashboard() {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="已付费订阅"
+              value={stats.activeSubscriptions}
+              valueStyle={{ color: '#3f8600' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Trial中订阅"
+              value={stats.trialSubscriptions}
+              valueStyle={{ color: '#d48806' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="仅最近快照动物"
+              value={stats.snapshotOnlyAnimals}
+              valueStyle={{ color: '#595959' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} lg={12}>
           <Card title={translate('今日同步统计', 'Today Sync Stats')}>
             <Row gutter={16}>
