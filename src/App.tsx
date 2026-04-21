@@ -40,9 +40,10 @@ function App() {
   // If deploying to GitHub Pages, the basename should match your repository name
   // For example, if repo is 'petraq-admin', basename should be '/petraq-admin'
   // You can also set it via environment variable VITE_BASE_PATH
+  const configuredBasePath = import.meta.env.VITE_BASE_PATH || '/Petraq-admin';
   const basename = import.meta.env.MODE === 'development' 
     ? '/' 
-    : (import.meta.env.VITE_BASE_PATH || '/Petraq-admin');
+    : configuredBasePath.replace(/\/+$/, '') || '/';
 
   return (
     <BrowserRouter basename={basename}>

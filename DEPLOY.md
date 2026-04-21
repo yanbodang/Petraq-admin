@@ -72,6 +72,7 @@ const basename = import.meta.env.MODE === 'development'
 1. `src/App.tsx` 中的 `basename` 是否正确
 2. GitHub Pages 设置中 Source 是否选择了 "GitHub Actions"
 3. 工作流是否成功完成
+4. 构建产物中是否包含 `dist/404.html`，用于 GitHub Pages 的 SPA fallback
 
 ### 常见问题
 
@@ -81,6 +82,12 @@ const basename = import.meta.env.MODE === 'development'
 - 检查 `basename` 配置是否与仓库名称匹配
 - 确保 GitHub Pages Source 设置为 "GitHub Actions"
 - 检查 `vite.config.ts` 中的 `base` 配置为 `'./'`
+- 对于 React Router 这类单页应用，确认构建后会额外生成 `dist/404.html`
+
+**说明**：
+- GitHub Pages 只认识静态文件路径，不会自动把 `/dashboard`、`/login` 这类前端路由回退到 `index.html`
+- 现在项目的 `build` 脚本会在构建完成后把 `dist/index.html` 复制成 `dist/404.html`
+- 这样用户直接打开子路由时，GitHub Pages 会返回自定义 `404.html`，React 应用仍然可以正常接管路由
 
 #### 问题：资源文件加载失败
 

@@ -6,6 +6,7 @@
 - [ ] 检查 `package.json` 中的构建脚本是否正确
 - [ ] 确认 `vite.config.ts` 中 `base: './'` 已设置
 - [ ] 确认 `src/App.tsx` 中的 `basename` 配置正确
+- [ ] 确认 `npm run build` 后会生成 `dist/404.html`
 - [ ] 测试本地构建：`npm run build`
 - [ ] 测试本地预览：`npm run preview`
 
