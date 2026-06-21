@@ -2,18 +2,16 @@ import { useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, Button, Layout, Menu, Select, Space, theme } from 'antd';
 import {
+  AuditOutlined,
   DashboardOutlined,
   LogoutOutlined,
   UserOutlined,
   TeamOutlined,
-  SyncOutlined,
-  BankOutlined,
   SettingOutlined,
   MobileOutlined,
-  CreditCardOutlined,
-  FileTextOutlined,
-  FileOutlined,
-  RobotOutlined,
+  MedicineBoxOutlined,
+  SafetyCertificateOutlined,
+  HomeOutlined,
 } from '@ant-design/icons';
 import { AppLanguage, useLocale } from '../../i18n';
 import { useAuth } from '../../auth/AuthContext';
@@ -24,71 +22,59 @@ export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { t, language, setLanguage, languageOptions } = useLocale();
+  const { t, translate, language, setLanguage, languageOptions } = useLocale();
   const { currentUser, logout } = useAuth();
   const {
     token: { colorBgContainer },
   } = theme.useToken();
 
   const menuItems = useMemo(
-    () => [
-      {
-        key: '/dashboard',
-        icon: <DashboardOutlined />,
-        label: t('menu.dashboard'),
-      },
-      {
-        key: '/users',
-        icon: <UserOutlined />,
-        label: t('menu.users'),
-      },
-      {
-        key: '/user-animals',
-        icon: <TeamOutlined />,
-        label: t('menu.userAnimals'),
-      },
-      {
-        key: '/devices',
-        icon: <MobileOutlined />,
-        label: '设备管理',
-      },
-      {
-        key: '/subscriptions',
-        icon: <CreditCardOutlined />,
-        label: '订阅管理',
-      },
-      {
-        key: '/medical-records',
-        icon: <FileTextOutlined />,
-        label: '医疗记录',
-      },
-      {
-        key: '/reports',
-        icon: <FileOutlined />,
-        label: '报告',
-      },
-      {
-        key: '/ai-tips',
-        icon: <RobotOutlined />,
-        label: 'AI文案库',
-      },
-      {
-        key: '/sync',
-        icon: <SyncOutlined />,
-        label: t('menu.sync'),
-      },
-      {
-        key: '/organizations',
-        icon: <BankOutlined />,
-        label: t('menu.organizations'),
-      },
-      {
-        key: '/settings',
-        icon: <SettingOutlined />,
-        label: t('menu.settings'),
-      },
-    ],
-    [t]
+    () => {
+      const baseItems = [
+        {
+          key: '/dashboard',
+          icon: <DashboardOutlined />,
+          label: t('menu.dashboard'),
+        },
+        {
+          key: '/families',
+          icon: <HomeOutlined />,
+          label: currentUser?.role === 'super_admin' ? t('menu.families') : t('menu.family'),
+        },
+        {
+          key: '/users',
+          icon: currentUser?.role === 'super_admin' ? <UserOutlined /> : <TeamOutlined />,
+          label: currentUser?.role === 'super_admin' ? t('menu.users') : t('menu.members'),
+        },
+        {
+          key: '/pets-devices',
+          icon: <MobileOutlined />,
+          label: t('menu.petsDevices'),
+        },
+        {
+          key: '/medical',
+          icon: <MedicineBoxOutlined />,
+          label: t('menu.medical'),
+        },
+        {
+          key: '/consent',
+          icon: <SafetyCertificateOutlined />,
+          label: t('menu.consent'),
+        },
+        {
+          key: '/operations',
+          icon: <AuditOutlined />,
+          label: currentUser?.role === 'super_admin' ? t('menu.operations') : t('menu.audit'),
+        },
+        {
+          key: '/settings',
+          icon: <SettingOutlined />,
+          label: t('menu.settings'),
+        },
+      ];
+      return baseItems;
+    },
+    [currentUser?.role, t]
   );
 
   return (
@@ -108,7 +94,7 @@ export default function MainLayout() {
             justifyContent: 'center',
             fontSize: 18,
             fontWeight: 'bold',
-            color: '#1890ff',
+            color: '#0f7c6d',
           }}
         >
           {collapsed ? t('app.logo.short') : t('app.logo.full')}
@@ -130,7 +116,7 @@ export default function MainLayout() {
             justifyContent: 'space-between',
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 20 }}>{t('app.title')}</h1>
+          <h1 style={{ margin: 0, fontSize: 20 }}>{currentUser?.role === 'super_admin' ? t('app.title.super') : t('app.title.family')}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Select
               size="small"
@@ -141,10 +127,12 @@ export default function MainLayout() {
               aria-label={t('header.language')}
             />
             <Space size={10}>
-              <Avatar style={{ backgroundColor: '#1677ff' }} icon={<UserOutlined />} />
+              <Avatar style={{ backgroundColor: '#0f7c6d' }} icon={<UserOutlined />} />
               <div style={{ lineHeight: 1.2 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? 'Mock User'}</div>
-                <div style={{ fontSize: 12, color: '#667085' }}>{currentUser?.role ?? '未登录'}</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? translate('模拟用户', 'Mock User')}</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>
+                  {currentUser?.role === 'super_admin' ? translate('超级管理员', 'Super Admin') : translate('家庭管理员', 'Family Admin')}
+                </div>
               </div>
             </Space>
             <Button
@@ -154,7 +142,7 @@ export default function MainLayout() {
                 navigate('/login', { replace: true });
               }}
             >
-              退出
+              {translate('退出', 'Logout')}
             </Button>
           </div>
         </Header>

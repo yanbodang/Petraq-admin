@@ -2,7 +2,7 @@
   "name": "petraq-admin",
   "version": "1.0.0",
   "type": "module",
-  "description": "PetraQ 牲畜宠物健康监测管理界面",
+  "description": "PetraQ pet health and family admin portal",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && node -e \"require('fs').copyFileSync('dist/index.html', 'dist/404.html')\"",
@@ -32,4 +32,3 @@
     "vite": "^5.0.8"
   }
 }
-

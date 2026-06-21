@@ -3,7 +3,8 @@ export interface MockAuthUser {
   name: string;
   email: string;
   phone: string;
-  role: string;
+  role: 'super_admin' | 'family_admin';
+  familyId?: string;
 }
 
 export interface MockAuthSession {
@@ -17,25 +18,26 @@ interface StoredMockAccount extends MockAuthUser {
 }
 
 const STORAGE_KEYS = {
-  accounts: 'petraq.mock-auth.accounts',
-  session: 'petraq.mock-auth.session',
+  accounts: 'petraq.admin-v2.mock-auth.accounts',
+  session: 'petraq.admin-v2.mock-auth.session',
 };
 
 const DEMO_ACCOUNTS: StoredMockAccount[] = [
   {
-    id: 'mock-admin-1',
-    name: 'PetraQ Admin',
-    email: 'admin@petraq.mock',
+    id: 'admin-super-1',
+    name: 'PetraQ Super Admin',
+    email: 'superadmin@petraq.mock',
     phone: '13800138000',
-    role: '超级管理员',
+    role: 'super_admin',
     password: 'PetraQ123',
   },
   {
-    id: 'mock-ops-1',
-    name: 'Subscription Ops',
-    email: 'ops@petraq.mock',
+    id: 'family-admin-1',
+    name: 'Yanbo Wang',
+    email: 'yanbo@petraq.mock',
     phone: '13900139000',
-    role: '运营经理',
+    role: 'family_admin',
+    familyId: 'family-wang',
     password: 'PetraQ123',
   },
 ];
@@ -75,6 +77,7 @@ function toSessionUser(account: StoredMockAccount): MockAuthUser {
     email: account.email,
     phone: account.phone,
     role: account.role,
+    familyId: account.familyId,
   };
 }
 

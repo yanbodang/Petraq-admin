@@ -1,16 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './components/Layout/MainLayout';
-import Dashboard from './pages/Dashboard';
-import UserManagement from './pages/UserManagement';
-import UserAnimals from './pages/UserAnimals';
-import DataSync from './pages/DataSync';
-import Organizations from './pages/Organizations';
-import Settings from './pages/Settings';
-import DeviceManagement from './pages/DeviceManagement';
-import SubscriptionManagement from './pages/SubscriptionManagement';
-import MedicalRecords from './pages/MedicalRecords';
-import Reports from './pages/Reports';
-import AITipsManagement from './pages/AITipsManagement';
+import PetraQDashboard from './pages/PetraQDashboard';
+import FamiliesPage from './pages/FamiliesPage';
+import UsersAndMembersPage from './pages/UsersAndMembersPage';
+import PetsDevicesPage from './pages/PetsDevicesPage';
+import PetMedicalPage from './pages/PetMedicalPage';
+import ConsentCenterPage from './pages/ConsentCenterPage';
+import OperationsAuditPage from './pages/OperationsAuditPage';
+import PetraQSettingsPage from './pages/PetraQSettingsPage';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './auth/AuthContext';
 
@@ -41,8 +38,8 @@ function App() {
   // For example, if repo is 'petraq-admin', basename should be '/petraq-admin'
   // You can also set it via environment variable VITE_BASE_PATH
   const configuredBasePath = import.meta.env.VITE_BASE_PATH || '/Petraq-admin';
-  const basename = import.meta.env.MODE === 'development' 
-    ? '/' 
+  const basename = import.meta.env.MODE === 'development'
+    ? '/'
     : configuredBasePath.replace(/\/+$/, '') || '/';
 
   return (
@@ -58,17 +55,14 @@ function App() {
         />
         <Route path="/" element={<ProtectedLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="users" element={<UserManagement />} />
-          <Route path="user-animals" element={<UserAnimals />} />
-          <Route path="devices" element={<DeviceManagement />} />
-          <Route path="subscriptions" element={<SubscriptionManagement />} />
-          <Route path="medical-records" element={<MedicalRecords />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="ai-tips" element={<AITipsManagement />} />
-          <Route path="sync" element={<DataSync />} />
-          <Route path="organizations" element={<Organizations />} />
-          <Route path="settings" element={<Settings />} />
+          <Route path="dashboard" element={<PetraQDashboard />} />
+          <Route path="families" element={<FamiliesPage />} />
+          <Route path="users" element={<UsersAndMembersPage />} />
+          <Route path="pets-devices" element={<PetsDevicesPage />} />
+          <Route path="medical" element={<PetMedicalPage />} />
+          <Route path="consent" element={<ConsentCenterPage />} />
+          <Route path="operations" element={<OperationsAuditPage />} />
+          <Route path="settings" element={<PetraQSettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
