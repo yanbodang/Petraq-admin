@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
 import { Family, FamilyMember, getScopedData, userName } from '../services/petraqAdminData';
-import { groupSyncService } from '../services/groupSyncService';
+import { GroupSnapshot, groupSyncService } from '../services/groupSyncService';
 
 export default function FamiliesPage() {
   const { currentUser, session } = useAuth();
@@ -13,6 +13,7 @@ export default function FamiliesPage() {
   const role = currentUser?.role ?? 'family_admin';
   const data = getScopedData(role, currentUser?.familyId);
   const [remoteFamilies, setRemoteFamilies] = useState<Family[]>([]);
+  const [remoteSnapshot, setRemoteSnapshot] = useState<GroupSnapshot | null>(null);
 
   useEffect(() => {
     if (!session?.token) return;
@@ -22,6 +23,12 @@ export default function FamiliesPage() {
   }, [session?.token, translate]);
 
   const visibleFamilies = remoteFamilies.length ? remoteFamilies : data.families;
+
+  useEffect(() => {
+    const groupId = currentUser?.familyId ?? remoteFamilies[0]?.id;
+    if (!session?.token || !groupId) return;
+    groupSyncService.getGroupSnapshot(groupId, session.token).then(setRemoteSnapshot).catch(() => setRemoteSnapshot(null));
+  }, [currentUser?.familyId, remoteFamilies, session?.token]);
 
   if (role === 'super_admin') {
     return (
@@ -61,14 +68,23 @@ export default function FamiliesPage() {
           <Typography.Text type="secondary">{translate('查看每位家庭成员、家庭关系及其名下宠物。', 'See every family member, their relationship and the pets they care for.')}</Typography.Text>
         </div>
         <Space size={8} wrap>
-          <Tag color="green">{data.members.length} {translate('位成员', 'members')}</Tag>
-          <Tag>{data.pets.length} {translate('只宠物', 'pets')}</Tag>
+          <Tag color="green">{family?.memberCount ?? data.members.length} {translate('位成员', 'members')}</Tag>
+          <Tag>{family?.petCount ?? data.pets.length} {translate('只宠物', 'pets')}</Tag>
           {family && groupSyncService.isEnabled && <SyncTestDataButton groupId={family.id} token={session?.token} />}
         </Space>
       </div>
 
       <Row gutter={[16, 16]}>
-        {orderedMembers.map((member) => (
+        {remoteSnapshot?.members.map((member) => (
+          <Col xs={24} md={12} xl={8} key={member.id}>
+            <Card className="member-card">
+              <div className="member-card__header"><Avatar size={44} icon={<UserOutlined />} className="member-avatar" /><div><Typography.Title level={4}>{member.name}</Typography.Title><Typography.Text type="secondary">{member.relationship} · {member.role}</Typography.Text></div></div>
+              <div className="member-health-row"><HeartOutlined /><span>{translate('人的健康数据', 'Human health')}</span><Tag color={member.share_human_health ? 'green' : 'default'}>{member.share_human_health ? translate('已共享', 'Shared') : translate('未共享', 'Not shared')}</Tag></div>
+              <div className="pet-list"><Typography.Text strong>{translate('名下宠物', 'Pets')}</Typography.Text>{remoteSnapshot.pets.filter((pet) => pet.owner_user_id === member.user_id).map((pet) => <div className="pet-list__item" key={pet.id}><div><strong>{pet.name}</strong><Typography.Text type="secondary"> · {pet.species}</Typography.Text></div><Tag color={pet.shared_with_group ? 'green' : 'default'}>{pet.shared_with_group ? translate('已共享', 'Shared') : translate('未共享', 'Not shared')}</Tag></div>)}</div>
+            </Card>
+          </Col>
+        ))}
+        {!remoteSnapshot && orderedMembers.map((member) => (
           <Col xs={24} md={12} xl={8} key={member.id}>
             <MemberCard member={member} />
           </Col>
