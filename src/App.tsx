@@ -11,6 +11,7 @@ import PetraQSettingsPage from './pages/PetraQSettingsPage';
 import HealthDataPage from './pages/HealthDataPage';
 import InvitationsPage from './pages/InvitationsPage';
 import LoginPage from './pages/LoginPage';
+import AppSsoPage from './pages/AppSsoPage';
 import { useAuth } from './auth/AuthContext';
 
 function ProtectedLayout() {
@@ -47,6 +48,7 @@ function App() {
   return (
     <BrowserRouter basename={basename}>
       <Routes>
+        <Route path="/sso" element={<AppSsoPage />} />
         <Route
           path="/login"
           element={(

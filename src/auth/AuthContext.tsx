@@ -6,6 +6,7 @@ type AuthContextValue = {
   session: AdminAuthSession | null;
   isAuthenticated: boolean;
   login: (identifier: string, password: string) => Promise<AdminAuthSession>;
+  loginWithAppCode: (code: string) => Promise<AdminAuthSession>;
   logout: () => void;
 };
 
@@ -14,6 +15,9 @@ const AuthContext = createContext<AuthContextValue>({
   session: null,
   isAuthenticated: false,
   login: async () => {
+    throw new Error('AuthProvider is missing');
+  },
+  loginWithAppCode: async () => {
     throw new Error('AuthProvider is missing');
   },
   logout: () => {},
@@ -29,6 +33,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: Boolean(session?.token),
       login: async (identifier: string, password: string) => {
         const nextSession = await adminAuthService.login(identifier, password);
+        setSession(nextSession);
+        return nextSession;
+      },
+      loginWithAppCode: async (code: string) => {
+        const nextSession = await adminAuthService.exchangeAppCode(code);
         setSession(nextSession);
         return nextSession;
       },

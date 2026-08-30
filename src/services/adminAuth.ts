@@ -67,6 +67,19 @@ export const adminAuthService = {
     return session;
   },
 
+  async exchangeAppCode(code: string): Promise<AdminAuthSession> {
+    const response = await fetch(apiUrl('api/mobile/admin-sso/exchange'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!response.ok) throw new Error('一键登录链接无效或已过期');
+    const payload = await response.json() as { token: string; user: AdminAuthUser };
+    const session: AdminAuthSession = { token: payload.token, user: payload.user, loginAt: new Date().toISOString() };
+    if (isBrowser()) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    return session;
+  },
+
   logout() {
     if (isBrowser()) window.localStorage.removeItem(SESSION_KEY);
   },
