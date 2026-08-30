@@ -68,4 +68,10 @@ export const groupSyncService = {
     if (!response.ok) throw new Error(payload.error || '读取 Group 详情失败');
     return { members: payload.members ?? [], pets: payload.pets ?? [] };
   },
+
+  async removeMember(groupId: string, memberId: string, token: string) {
+    const response = await fetch(apiUrl(`api/groups/${encodeURIComponent(groupId)}/members/${encodeURIComponent(memberId)}`), { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    const payload = await response.json() as { error?: string };
+    if (!response.ok) throw new Error(payload.error || '移除成员失败');
+  },
 };

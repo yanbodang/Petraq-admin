@@ -77,7 +77,7 @@ export default function FamiliesPage() {
       <Row gutter={[16, 16]}>
         {remoteSnapshot?.members.map((member) => (
           <Col xs={24} md={12} xl={8} key={member.id}>
-            <Card className="member-card">
+            <Card className="member-card" extra={member.role !== 'owner' ? <Button danger size="small" onClick={async () => { if (!session?.token || !family) return; await groupSyncService.removeMember(family.id, member.id, session.token); setRemoteSnapshot(await groupSyncService.getGroupSnapshot(family.id, session.token)); message.success(translate('成员已移除', 'Member removed')); }}>{translate('移除', 'Remove')}</Button> : null}>
               <div className="member-card__header"><Avatar size={44} icon={<UserOutlined />} className="member-avatar" /><div><Typography.Title level={4}>{member.name}</Typography.Title><Typography.Text type="secondary">{member.relationship} · {member.role}</Typography.Text></div></div>
               <div className="member-health-row"><HeartOutlined /><span>{translate('人的健康数据', 'Human health')}</span><Tag color={member.share_human_health ? 'green' : 'default'}>{member.share_human_health ? translate('已共享', 'Shared') : translate('未共享', 'Not shared')}</Tag></div>
               <div className="pet-list"><Typography.Text strong>{translate('名下宠物', 'Pets')}</Typography.Text>{remoteSnapshot.pets.filter((pet) => pet.owner_user_id === member.user_id).map((pet) => <div className="pet-list__item" key={pet.id}><div><strong>{pet.name}</strong><Typography.Text type="secondary"> · {pet.species}</Typography.Text></div><Tag color={pet.shared_with_group ? 'green' : 'default'}>{pet.shared_with_group ? translate('已共享', 'Shared') : translate('未共享', 'Not shared')}</Tag></div>)}</div>
