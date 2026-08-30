@@ -53,10 +53,10 @@ export const adminAuthService = {
       throw new Error('请输入账号和密码');
     }
 
-    const response = await fetch(apiUrl('api/mobile/admin-auth/login'), {
+    const response = await fetch(apiUrl('api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: identifier.trim(), password }),
+      body: JSON.stringify({ email: identifier.trim(), password }),
     });
 
     if (!response.ok) {

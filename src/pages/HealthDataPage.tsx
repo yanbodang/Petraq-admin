@@ -1,10 +1,10 @@
-import { EyeInvisibleOutlined, HeartOutlined } from '@ant-design/icons';
-import { Card, Collapse, Empty, Segmented, Space, Table, Tag, Typography } from 'antd';
-import { useMemo, useState } from 'react';
+import { HeartOutlined } from '@ant-design/icons';
+import { Card, Collapse, Empty, message, Segmented, Space, Table, Tag, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import { getScopedData, userName } from '../services/petraqAdminData';
+import { GroupHealthData, GroupHealthRecord, groupSyncService } from '../services/groupSyncService';
 
 type HealthView = 'people' | 'pets';
 type ChartPoint = { name: string; heartRate: number | null; secondary: number | null };
@@ -31,38 +31,44 @@ function HealthChart({ data, secondaryLabel, secondaryUnit, emptyText }: { data:
 }
 
 export default function HealthDataPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, session } = useAuth();
   const { translate } = useLocale();
   const [view, setView] = useState<HealthView>('people');
-  const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
+  const [data, setData] = useState<GroupHealthData>({ people: [], pets: [] });
+  const [loading, setLoading] = useState(false);
   const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-  const memberName = (memberId: string) => {
-    const member = data.members.find((item) => item.id === memberId);
-    return member ? userName(member.userId) : memberId;
-  };
-  const peopleChart = useMemo<ChartPoint[]>(() => data.humanHealth.filter((item) => item.sharedWithFamily).map((item) => ({ name: memberName(item.memberId), heartRate: item.heartRate, secondary: item.sleepMinutes ? Number((item.sleepMinutes / 60).toFixed(1)) : null })), [data.humanHealth]);
-  const petChart = useMemo<ChartPoint[]>(() => data.pets.filter((item) => item.sharedWithFamily).map((item) => ({ name: item.name, heartRate: item.heartRate, secondary: item.healthScore })), [data.pets]);
+
+  useEffect(() => {
+    if (!currentUser?.familyId || !session?.token) return;
+    setLoading(true);
+    groupSyncService.getGroupHealth(currentUser.familyId, session.token)
+      .then(setData)
+      .catch((error) => message.error(error instanceof Error ? error.message : translate('读取健康数据失败', 'Failed to load health data')))
+      .finally(() => setLoading(false));
+  }, [currentUser?.familyId, session?.token, translate]);
+
+  const toChart = (records: GroupHealthRecord[]) => records
+    .filter((item) => ['heart_rate', 'temperature'].includes(item.metric_type))
+    .slice(-80)
+    .map((item) => ({
+      name: new Intl.DateTimeFormat(undefined, { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(item.recorded_at)),
+      heartRate: item.metric_type === 'heart_rate' ? Number(item.value) : null,
+      secondary: item.metric_type === 'temperature' ? Number(item.value) : null,
+    }));
+  const peopleChart = useMemo<ChartPoint[]>(() => toChart(data.people), [data.people]);
+  const petChart = useMemo<ChartPoint[]>(() => toChart(data.pets), [data.pets]);
+
+  const columns = [
+    { title: translate('姓名', 'Name'), dataIndex: 'name' },
+    { title: translate('数据类型', 'Metric'), dataIndex: 'metric_type', render: (value: string) => <Tag icon={<HeartOutlined />}>{value}</Tag> },
+    { title: translate('数值', 'Value'), dataIndex: 'value', render: (value: number, record: GroupHealthRecord) => `${value} ${record.unit || ''}` },
+    { title: translate('记录时间', 'Recorded'), dataIndex: 'recorded_at', render: formatDate },
+  ];
 
   const details = view === 'people' ? (
-    <Table rowKey="id" dataSource={data.humanHealth} pagination={{ pageSize: 10, showSizeChanger: true }} scroll={{ x: 860 }} columns={[
-      { title: translate('成员', 'Member'), dataIndex: 'memberId', render: memberName },
-      { title: translate('共享状态', 'Sharing'), dataIndex: 'sharedWithFamily', render: (shared: boolean) => shared ? <Tag color="green">{translate('已共享', 'Shared')}</Tag> : <Tag icon={<EyeInvisibleOutlined />}>{translate('未共享', 'Not shared')}</Tag> },
-      { title: translate('心率', 'Heart rate'), dataIndex: 'heartRate', render: (value: number | null, record) => record.sharedWithFamily && value ? `${value} bpm` : '—' },
-      { title: translate('静息心率', 'Resting'), dataIndex: 'restingHeartRate', render: (value: number | null, record) => record.sharedWithFamily && value ? `${value} bpm` : '—' },
-      { title: translate('睡眠', 'Sleep'), dataIndex: 'sleepMinutes', render: (value: number | null, record) => record.sharedWithFamily && value ? `${Math.floor(value / 60)}h ${value % 60}m` : '—' },
-      { title: translate('体温', 'Temperature'), dataIndex: 'temperatureCelsius', render: (value: number | null, record) => record.sharedWithFamily && value ? `${value.toFixed(1)}°C` : '—' },
-      { title: translate('更新时间', 'Updated'), dataIndex: 'updatedAt', render: formatDate },
-    ]} />
+    <Table loading={loading} rowKey="id" dataSource={data.people} pagination={{ pageSize: 10, showSizeChanger: true }} scroll={{ x: 760 }} columns={columns} />
   ) : (
-    <Table rowKey="id" dataSource={data.pets} pagination={{ pageSize: 10, showSizeChanger: true }} scroll={{ x: 760 }} columns={[
-      { title: translate('宠物', 'Pet'), dataIndex: 'name' },
-      { title: translate('主人', 'Owner'), dataIndex: 'ownerMemberId', render: memberName },
-      { title: translate('共享状态', 'Sharing'), dataIndex: 'sharedWithFamily', render: (shared: boolean) => <Tag color={shared ? 'green' : 'default'}>{shared ? translate('已共享', 'Shared') : translate('未共享', 'Not shared')}</Tag> },
-      { title: translate('健康评分', 'Health score'), dataIndex: 'healthScore', render: (value: number | null, record) => record.sharedWithFamily && value ? value : '—' },
-      { title: translate('心率', 'Heart rate'), dataIndex: 'heartRate', render: (value: number | null, record) => record.sharedWithFamily && value ? `${value} bpm` : '—' },
-      { title: translate('状态', 'Status'), dataIndex: 'activity', render: (value: string, record) => record.sharedWithFamily ? <Tag icon={<HeartOutlined />}>{value}</Tag> : '—' },
-      { title: translate('更新时间', 'Updated'), dataIndex: 'lastComputedAt', render: formatDate },
-    ]} />
+    <Table loading={loading} rowKey="id" dataSource={data.pets} pagination={{ pageSize: 10, showSizeChanger: true }} scroll={{ x: 760 }} columns={columns} />
   );
 
   return (
@@ -75,7 +81,7 @@ export default function HealthDataPage() {
         <Segmented<HealthView> value={view} onChange={setView} options={[{ label: translate('人的健康数据', 'People'), value: 'people' }, { label: translate('宠物健康数据', 'Pets'), value: 'pets' }]} />
       </div>
       <Card title={view === 'people' ? translate('心率与睡眠概览', 'Heart rate and sleep overview') : translate('心率与健康评分概览', 'Heart rate and health score overview')}>
-        <HealthChart data={view === 'people' ? peopleChart : petChart} secondaryLabel={view === 'people' ? translate('睡眠', 'Sleep') : translate('健康评分', 'Health score')} secondaryUnit={view === 'people' ? ' h' : ''} emptyText={translate('接入真实健康数据后，趋势图会显示在这里。', 'The trend chart will appear when real health data is connected.')} />
+        <HealthChart data={view === 'people' ? peopleChart : petChart} secondaryLabel={translate('体温', 'Temperature')} secondaryUnit=" °C" emptyText={translate('当前没有已授权的健康数据。', 'There is no authorized health data yet.')} />
       </Card>
       <Collapse items={[{ key: view, label: view === 'people' ? translate('查看成员健康明细', 'View member health details') : translate('查看宠物健康明细', 'View pet health details'), children: details }]} />
     </Space>

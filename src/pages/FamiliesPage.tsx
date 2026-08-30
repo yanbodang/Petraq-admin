@@ -1,7 +1,7 @@
 import { CloudSyncOutlined, CrownOutlined, HeartOutlined, UserOutlined } from '@ant-design/icons';
 import { Avatar, Button, Card, Col, message, Row, Space, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
 import { Family, FamilyMember, getScopedData, userName } from '../services/petraqAdminData';
@@ -12,6 +12,16 @@ export default function FamiliesPage() {
   const { translate } = useLocale();
   const role = currentUser?.role ?? 'family_admin';
   const data = getScopedData(role, currentUser?.familyId);
+  const [remoteFamilies, setRemoteFamilies] = useState<Family[]>([]);
+
+  useEffect(() => {
+    if (!session?.token) return;
+    groupSyncService.listGroups(session.token).then(setRemoteFamilies).catch((error) => {
+      message.error(error instanceof Error ? error.message : translate('读取 Group 失败', 'Failed to load groups'));
+    });
+  }, [session?.token, translate]);
+
+  const visibleFamilies = remoteFamilies.length ? remoteFamilies : data.families;
 
   if (role === 'super_admin') {
     return (
@@ -23,7 +33,7 @@ export default function FamiliesPage() {
         <Card>
           <Table
             rowKey="id"
-            dataSource={data.families}
+            dataSource={visibleFamilies}
             scroll={{ x: 760 }}
             columns={[
               { title: translate('家庭', 'Family'), dataIndex: 'name' },
@@ -40,7 +50,7 @@ export default function FamiliesPage() {
     );
   }
 
-  const family = data.families[0];
+  const family = visibleFamilies.find((item) => item.id === currentUser?.familyId) ?? visibleFamilies[0];
   const orderedMembers = [...data.members].sort((a, b) => roleRank(a.role) - roleRank(b.role));
 
   return (
