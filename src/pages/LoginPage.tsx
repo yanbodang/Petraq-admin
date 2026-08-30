@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Form, Input, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd';
 import { LockOutlined, LoginOutlined, UserOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -71,8 +71,7 @@ export default function LoginPage() {
         >
           <Space direction="vertical" size={20} style={{ width: '100%' }}>
             <div>
-              <Tag color="green">PetraQ Admin MVP</Tag>
-              <Typography.Title level={2} style={{ marginTop: 12, marginBottom: 8 }}>
+              <Typography.Title level={2} style={{ marginBottom: 8 }}>
                 {translate('PetraQ 管理平台登录', 'Sign in to PetraQ Admin')}
               </Typography.Title>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
