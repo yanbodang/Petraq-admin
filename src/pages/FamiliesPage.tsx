@@ -1,12 +1,14 @@
-import { CrownOutlined, HeartOutlined, UserOutlined } from '@ant-design/icons';
-import { Avatar, Card, Col, Row, Space, Table, Tag, Typography } from 'antd';
+import { CloudSyncOutlined, CrownOutlined, HeartOutlined, UserOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Col, message, Row, Space, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
+import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import { FamilyMember, getScopedData, userName } from '../services/petraqAdminData';
+import { Family, FamilyMember, getScopedData, userName } from '../services/petraqAdminData';
+import { groupSyncService } from '../services/groupSyncService';
 
 export default function FamiliesPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, session } = useAuth();
   const { translate } = useLocale();
   const role = currentUser?.role ?? 'family_admin';
   const data = getScopedData(role, currentUser?.familyId);
@@ -30,6 +32,7 @@ export default function FamiliesPage() {
               { title: translate('宠物', 'Pets'), dataIndex: 'petCount' },
               { title: translate('地区', 'Region'), dataIndex: 'region' },
               { title: translate('创建时间', 'Created'), dataIndex: 'createdAt', render: (value: string) => dayjs(value).format('YYYY-MM-DD') },
+              ...(groupSyncService.isEnabled ? [{ title: translate('临时操作', 'Temporary action'), key: 'sync', render: (_: unknown, record: Family) => <SyncTestDataButton groupId={record.id} token={session?.token} /> }] : []),
             ]}
           />
         </Card>
@@ -50,6 +53,7 @@ export default function FamiliesPage() {
         <Space size={8} wrap>
           <Tag color="green">{data.members.length} {translate('位成员', 'members')}</Tag>
           <Tag>{data.pets.length} {translate('只宠物', 'pets')}</Tag>
+          {family && groupSyncService.isEnabled && <SyncTestDataButton groupId={family.id} token={session?.token} />}
         </Space>
       </div>
 
@@ -61,6 +65,36 @@ export default function FamiliesPage() {
         ))}
       </Row>
     </Space>
+  );
+}
+
+function SyncTestDataButton({ groupId, token }: { groupId: string; token?: string }) {
+  const { translate } = useLocale();
+  const [syncing, setSyncing] = useState(false);
+
+  const sync = async () => {
+    if (!token) {
+      message.error(translate('登录会话已失效，请重新登录。', 'Your session expired. Please sign in again.'));
+      return;
+    }
+    setSyncing(true);
+    try {
+      const result = await groupSyncService.syncTestData(groupId, token);
+      message.success(translate(
+        `同步完成：写入 ${result.recordsWritten} 条，${result.recordsUnmapped} 条未映射。`,
+        `Sync complete: ${result.recordsWritten} written, ${result.recordsUnmapped} unmapped.`,
+      ));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : translate('同步测试数据失败', 'Test data sync failed'));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <Button icon={<CloudSyncOutlined />} loading={syncing} onClick={sync}>
+      {translate('同步测试数据', 'Sync test data')}
+    </Button>
   );
 }
 
