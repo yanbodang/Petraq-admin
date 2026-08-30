@@ -173,7 +173,7 @@ export default function MainLayout() {
             {!compact && <Space size={10}>
               <Avatar style={{ backgroundColor: '#0f7c6d' }} icon={<UserOutlined />} />
               <div style={{ lineHeight: 1.2 }}>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? translate('模拟用户', 'Mock User')}</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? translate('用户', 'User')}</div>
                 <div style={{ fontSize: 12, color: '#667085' }}>
                   {currentUser?.role === 'super_admin' ? translate('超级管理员', 'Super Admin') : translate('家庭管理员', 'Family Admin')}
                 </div>

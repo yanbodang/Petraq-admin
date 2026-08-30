@@ -1,19 +1,17 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { MockAuthSession, MockAuthUser, mockAuthService } from '../services/mockAuth';
+import { createContext, useContext, useMemo, useState } from 'react';
+import { AdminAuthSession, AdminAuthUser, adminAuthService } from '../services/adminAuth';
 
 type AuthContextValue = {
-  currentUser: MockAuthUser | null;
-  session: MockAuthSession | null;
-  demoAccounts: MockAuthUser[];
+  currentUser: AdminAuthUser | null;
+  session: AdminAuthSession | null;
   isAuthenticated: boolean;
-  login: (identifier: string, password: string) => Promise<MockAuthSession>;
+  login: (identifier: string, password: string) => Promise<AdminAuthSession>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue>({
   currentUser: null,
   session: null,
-  demoAccounts: [],
   isAuthenticated: false,
   login: async () => {
     throw new Error('AuthProvider is missing');
@@ -22,33 +20,24 @@ const AuthContext = createContext<AuthContextValue>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<MockAuthSession | null>(() => mockAuthService.getSession());
-  const [demoAccounts, setDemoAccounts] = useState<MockAuthUser[]>(() => mockAuthService.getDemoAccounts());
-
-  useEffect(() => {
-    mockAuthService.ensureSeeded();
-    setDemoAccounts(mockAuthService.getDemoAccounts());
-    setSession(mockAuthService.getSession());
-  }, []);
+  const [session, setSession] = useState<AdminAuthSession | null>(() => adminAuthService.getSession());
 
   const value = useMemo<AuthContextValue>(
     () => ({
       currentUser: session?.user ?? null,
       session,
-      demoAccounts,
       isAuthenticated: Boolean(session?.token),
       login: async (identifier: string, password: string) => {
-        await new Promise((resolve) => window.setTimeout(resolve, 300));
-        const nextSession = mockAuthService.login(identifier, password);
+        const nextSession = await adminAuthService.login(identifier, password);
         setSession(nextSession);
         return nextSession;
       },
       logout: () => {
-        mockAuthService.logout();
+        adminAuthService.logout();
         setSession(null);
       },
     }),
-    [demoAccounts, session]
+    [session]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

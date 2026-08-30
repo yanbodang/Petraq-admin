@@ -22,10 +22,10 @@ export default function PetraQSettingsPage() {
       <Alert
         showIcon
         type="info"
-        message={translate('MVP 说明', 'MVP note')}
+        message={translate('服务接入状态', 'Service connection status')}
         description={translate(
-          '当前管理后台仍使用本地 mock 数据，下一步需要接入新的 PetraQ 后端 API。',
-          'This admin is currently backed by local mock data. The next step is binding it to the new PetraQ backend APIs.'
+          '测试数据已移除；业务列表将在 PetraQ 后端 API 接入后显示真实数据。',
+          'Test data has been removed. Business records will appear after the PetraQ backend APIs are connected.'
         )}
       />
 

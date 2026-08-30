@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Alert, Button, Card, Form, Input, List, Space, Tag, Typography } from 'antd';
-import { LockOutlined, LoginOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Form, Input, Space, Tag, Typography } from 'antd';
+import { LockOutlined, LoginOutlined, UserOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
@@ -14,7 +14,7 @@ type LocationState = {
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, demoAccounts } = useAuth();
+  const { login } = useAuth();
   const { translate } = useLocale();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
@@ -42,14 +42,6 @@ export default function LoginPage() {
     }
   };
 
-  const fillDemoAccount = (identifier: string) => {
-    form.setFieldsValue({
-      identifier,
-      password: 'PetraQ123',
-    });
-    setErrorMessage(null);
-  };
-
   return (
     <div
       style={{
@@ -64,7 +56,7 @@ export default function LoginPage() {
       <div
         style={{
           width: '100%',
-          maxWidth: 960,
+          maxWidth: 520,
           display: 'grid',
           gap: 24,
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -115,57 +107,6 @@ export default function LoginPage() {
           </Space>
         </Card>
 
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 24,
-            boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)',
-          }}
-        >
-          <Space direction="vertical" size={18} style={{ width: '100%' }}>
-            <div>
-              <Typography.Title level={4} style={{ marginBottom: 8 }}>
-                {translate('Demo 账号', 'Demo accounts')}
-              </Typography.Title>
-              <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {translate('点击任意账号即可自动填充，默认密码统一为 PetraQ123。', 'Click an account to autofill. The demo password is PetraQ123.')}
-              </Typography.Paragraph>
-            </div>
-
-            <List
-              dataSource={demoAccounts}
-              renderItem={(account) => (
-                <List.Item
-                  actions={[
-                    <Button key="email" type="link" onClick={() => fillDemoAccount(account.email)}>
-                      {translate('用邮箱登录', 'Use email')}
-                    </Button>,
-                  ]}
-                >
-                  <List.Item.Meta
-                    avatar={<UserOutlined style={{ fontSize: 18, color: '#1677ff' }} />}
-                    title={
-                      <Space>
-                        <span>{account.name}</span>
-                        <Tag color={account.role === 'super_admin' ? 'purple' : 'green'}>
-                          {account.role === 'super_admin' ? translate('超级管理员', 'Super Admin') : translate('家庭管理员', 'Family Admin')}
-                        </Tag>
-                      </Space>
-                    }
-                    description={
-                      <Space direction="vertical" size={2}>
-                        <Space size={8}>
-                          <MailOutlined />
-                          <span>{account.email}</span>
-                        </Space>
-                      </Space>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
-          </Space>
-        </Card>
       </div>
     </div>
   );

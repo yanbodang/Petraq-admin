@@ -13,15 +13,20 @@ export default function InvitationsPage() {
   const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
   const [invitations, setInvitations] = useState(data.invitations);
   const active = useMemo(() => invitations.find((item) => item.status === 'pending'), [invitations]);
-  const inviteUrl = active ? `https://app.petraq.example/join/${active.token}` : '';
+  const inviteUrl = active ? `${window.location.origin}/join/${active.token}` : '';
   const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
   const createInvitation = () => {
+    const family = data.families[0];
+    if (!family || !currentUser) {
+      message.warning(translate('请先创建或选择家庭', 'Create or select a family first'));
+      return;
+    }
     const now = dayjs();
     const next: FamilyInvitation = {
       id: `invite-${Date.now()}`,
-      familyId: data.families[0]?.id ?? 'family-wang',
-      invitedByUserId: currentUser?.id ?? 'user-yanbo',
+      familyId: family.id,
+      invitedByUserId: currentUser.id,
       token: `PQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       createdAt: now.toISOString(),
       expiresAt: now.add(7, 'day').toISOString(),

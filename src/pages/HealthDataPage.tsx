@@ -1,10 +1,9 @@
 import { EyeInvisibleOutlined, HeartOutlined } from '@ant-design/icons';
 import { Card, Segmented, Space, Table, Tag, Typography } from 'antd';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
 import { getScopedData, userName } from '../services/petraqAdminData';
-import { loadWillHealth } from '../services/memberHealthService';
 
 type HealthView = 'people' | 'pets';
 
@@ -13,22 +12,13 @@ export default function HealthDataPage() {
   const { translate } = useLocale();
   const [view, setView] = useState<HealthView>('people');
   const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
-  const [humanHealth, setHumanHealth] = useState(data.humanHealth);
+  const [humanHealth] = useState(data.humanHealth);
   const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
   const memberName = (memberId: string) => {
     const member = data.members.find((item) => item.id === memberId);
     return member ? userName(member.userId) : memberId;
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    loadWillHealth(controller.signal).then((will) => {
-      if (!will) return;
-      setHumanHealth((records) => [will, ...records.filter((item) => item.memberId !== 'member-will')]);
-    }).catch(() => undefined);
-    return () => controller.abort();
-  }, []);
 
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
