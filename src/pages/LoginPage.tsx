@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Card, Form, Input, Space, Spin, Typography } from 'antd';
 import { LockOutlined, LoginOutlined, UserOutlined } from '@ant-design/icons';
+import { QRCodeSVG } from 'qrcode.react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
+import { AdminLoginChallenge, adminAuthService } from '../services/adminAuth';
 
 type LocationState = {
   from?: {
@@ -19,8 +21,44 @@ export default function LoginPage() {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<AdminLoginChallenge | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   const redirectPath = (location.state as LocationState | null)?.from?.pathname || '/dashboard';
+
+  const createQr = useCallback(async (signal?: AbortSignal) => {
+    setQrError(null);
+    setChallenge(null);
+    try {
+      setChallenge(await adminAuthService.createLoginChallenge(signal));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setQrError(translate('二维码暂时无法生成，请稍后重试。', 'The QR code is temporarily unavailable. Please try again.'));
+    }
+  }, [translate]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    createQr(controller.signal);
+    return () => controller.abort();
+  }, [createQr]);
+
+  useEffect(() => {
+    if (!challenge) return;
+    const controller = new AbortController();
+    const timer = window.setInterval(async () => {
+      try {
+        const session = await adminAuthService.checkLoginChallenge(challenge.id, controller.signal);
+        if (session) window.location.reload();
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        window.clearInterval(timer);
+        setChallenge(null);
+        setQrError(translate('二维码已过期，请刷新后重试。', 'The QR code expired. Refresh it to try again.'));
+      }
+    }, 1800);
+    return () => { controller.abort(); window.clearInterval(timer); };
+  }, [challenge, navigate, redirectPath, translate]);
 
   const handleSubmit = async () => {
     try {
@@ -56,7 +94,7 @@ export default function LoginPage() {
       <div
         style={{
           width: '100%',
-          maxWidth: 520,
+          maxWidth: 960,
           display: 'grid',
           gap: 24,
           gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -103,6 +141,21 @@ export default function LoginPage() {
                 {translate('登录进入后台', 'Sign in')}
               </Button>
             </Form>
+          </Space>
+        </Card>
+
+        <Card bordered={false} style={{ borderRadius: 24, boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)' }}>
+          <Space direction="vertical" size={18} align="center" style={{ width: '100%', textAlign: 'center' }}>
+            <div>
+              <Typography.Title level={3} style={{ marginBottom: 8 }}>{translate('使用 PetraQ App 扫码', 'Scan with the PetraQ App')}</Typography.Title>
+              <Typography.Paragraph type="secondary">{translate('在 App 设置中打开扫码登录，确认后此页面会自动进入。', 'Open Scan to sign in from App Settings. This page signs in automatically after you confirm.')}</Typography.Paragraph>
+            </div>
+            {qrError ? <Alert type="warning" showIcon message={qrError} action={<Button size="small" onClick={() => createQr()}>{translate('刷新', 'Refresh')}</Button>} /> : challenge ? (
+              <div style={{ padding: 16, background: '#fff', border: '1px solid #e2e9e5', borderRadius: 16 }}>
+                <QRCodeSVG value={challenge.qrPayload} size={214} level="M" aria-label={translate('App 登录二维码', 'App sign-in QR code')} />
+              </div>
+            ) : <Spin size="large" />}
+            <Typography.Text type="secondary">{translate('二维码两分钟内有效，且只能使用一次。', 'The QR code expires in two minutes and can only be used once.')}</Typography.Text>
           </Space>
         </Card>
 

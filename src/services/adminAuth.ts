@@ -13,6 +13,12 @@ export interface AdminAuthSession {
   loginAt: string;
 }
 
+export interface AdminLoginChallenge {
+  id: string;
+  qrPayload: string;
+  expiresAt: string;
+}
+
 const SESSION_KEY = 'petraq.admin.auth.session';
 
 function isBrowser() {
@@ -75,6 +81,23 @@ export const adminAuthService = {
     });
     if (!response.ok) throw new Error('一键登录链接无效或已过期');
     const payload = await response.json() as { token: string; user: AdminAuthUser };
+    const session: AdminAuthSession = { token: payload.token, user: payload.user, loginAt: new Date().toISOString() };
+    if (isBrowser()) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    return session;
+  },
+
+  async createLoginChallenge(signal?: AbortSignal): Promise<AdminLoginChallenge> {
+    const response = await fetch(apiUrl('api/admin-sso/challenges'), { method: 'POST', signal });
+    if (!response.ok) throw new Error('二维码登录服务暂时不可用');
+    return response.json() as Promise<AdminLoginChallenge>;
+  },
+
+  async checkLoginChallenge(id: string, signal?: AbortSignal): Promise<AdminAuthSession | null> {
+    const response = await fetch(apiUrl(`api/admin-sso/challenges/${encodeURIComponent(id)}`), { signal });
+    if (response.status === 410) throw new Error('二维码已过期');
+    if (!response.ok) throw new Error('二维码登录服务暂时不可用');
+    const payload = await response.json() as { status: string; token?: string; user?: AdminAuthUser };
+    if (payload.status !== 'approved' || !payload.token || !payload.user) return null;
     const session: AdminAuthSession = { token: payload.token, user: payload.user, loginAt: new Date().toISOString() };
     if (isBrowser()) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     return session;
