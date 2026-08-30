@@ -8,12 +8,183 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
+  color: #1d2523;
+  background: #f3f7f5;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: rgba(20, 122, 104, 0.16);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 8px;
+  left: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  background: #147a68;
+  border-radius: 8px;
+  transform: translateY(-150%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
 }
 
 #root {
   min-height: 100vh;
 }
 
+::selection {
+  color: #fff;
+  background: #147a68;
+}
 
+:focus-visible {
+  outline: 3px solid rgba(20, 122, 104, 0.35);
+  outline-offset: 2px;
+}
+
+.admin-title {
+  margin: 0;
+  color: #1d2523;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.page-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.page-heading .ant-typography {
+  margin-bottom: 4px;
+}
+
+.member-card {
+  height: 100%;
+  border: 1px solid #e2e9e5;
+  box-shadow: none;
+}
+
+.member-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-card__header h4 {
+  margin: 0;
+}
+
+.member-card__header > div {
+  min-width: 0;
+}
+
+.member-card__header .ant-typography-secondary {
+  display: block;
+  margin-top: 3px;
+}
+
+.ant-drawer-body {
+  overscroll-behavior: contain;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+.member-avatar {
+  flex: 0 0 auto;
+  color: #147a68;
+  background: #e7f0ec;
+}
+
+.owner-icon {
+  color: #b77a2a;
+}
+
+.member-health-row,
+.pet-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.member-health-row {
+  margin: 18px 0;
+  padding: 12px 0;
+  border-top: 1px solid #e2e9e5;
+  border-bottom: 1px solid #e2e9e5;
+}
+
+.member-health-row > span {
+  flex: 1;
+}
+
+.pet-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pet-list__item {
+  min-height: 34px;
+}
+
+.invite-card {
+  min-height: 100%;
+  border: 1px solid #e2e9e5;
+}
+
+.empty-panel {
+  display: grid;
+  min-height: 280px;
+  place-content: center;
+  text-align: center;
+}
+
+.ant-card {
+  overflow: hidden;
+}
+
+.ant-layout-header {
+  position: sticky;
+  z-index: 10;
+  top: 0;
+  border-bottom: 1px solid #e2e9e5;
+}
+
+.ant-table-cell {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 767px) {
+  .admin-title {
+    max-width: 180px;
+    overflow: hidden;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .page-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ant-layout-header {
+    height: 58px;
+  }
+
+  .ant-card-body {
+    padding: 16px;
+  }
+}

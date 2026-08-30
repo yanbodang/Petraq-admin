@@ -8,6 +8,8 @@ import PetMedicalPage from './pages/PetMedicalPage';
 import ConsentCenterPage from './pages/ConsentCenterPage';
 import OperationsAuditPage from './pages/OperationsAuditPage';
 import PetraQSettingsPage from './pages/PetraQSettingsPage';
+import HealthDataPage from './pages/HealthDataPage';
+import InvitationsPage from './pages/InvitationsPage';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './auth/AuthContext';
 
@@ -59,6 +61,8 @@ function App() {
           <Route path="families" element={<FamiliesPage />} />
           <Route path="users" element={<UsersAndMembersPage />} />
           <Route path="pets-devices" element={<PetsDevicesPage />} />
+          <Route path="health" element={<HealthDataPage />} />
+          <Route path="invitations" element={<InvitationsPage />} />
           <Route path="medical" element={<PetMedicalPage />} />
           <Route path="consent" element={<ConsentCenterPage />} />
           <Route path="operations" element={<OperationsAuditPage />} />

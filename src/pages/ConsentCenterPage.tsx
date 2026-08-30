@@ -28,11 +28,8 @@ export default function ConsentCenterPage() {
 
   const scopeLabel = (scope: string) => {
     const labels: Record<string, string> = {
-      'human.heart_rate': translate('人的心率', 'Human heart rate'),
-      'human.steps': translate('人的步数', 'Human steps'),
-      'human.sleep': translate('人的睡眠', 'Human sleep'),
-      'pet.latest': translate('宠物最新数据', 'Pet latest data'),
-      'pet.history': translate('宠物历史数据', 'Pet history data'),
+      human_health: translate('人的健康数据', 'Human health data'),
+      pet_health: translate('宠物健康数据', 'Pet health data'),
     };
     return labels[scope] ?? scope;
   };
@@ -54,8 +51,8 @@ export default function ConsentCenterPage() {
         type="warning"
         message={translate('隐私规则', 'Privacy rule')}
         description={translate(
-          '宠物数据共享和人的健康数据共享必须分开。后端 API 必须同时校验家庭、角色和授权范围。',
-          'Pet data sharing and human health data sharing must stay separate. Backend APIs must enforce family, role, and scope checks.'
+          '宠物健康和人的健康共享必须分别授权。家庭所有者不能替成员开启共享。',
+          'Pet health and human health require separate consent. Family owners cannot enable sharing for another member.'
         )}
       />
 

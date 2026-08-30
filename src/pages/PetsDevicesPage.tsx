@@ -40,11 +40,11 @@ export default function PetsDevicesPage() {
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
       <div>
-        <Typography.Title level={2}>{translate('宠物与设备', 'Pets & Devices')}</Typography.Title>
+        <Typography.Title level={2}>{translate('宠物管理', 'Pets')}</Typography.Title>
         <Typography.Text type="secondary">
           {translate(
-            '查看宠物归属、家庭共享、蓝牙项圈连接、电量和上传状态。',
-            'Pet ownership, family sharing, BLE collar connection, battery, and upload status.'
+            '查看宠物归属、家庭共享和健康数据更新状态。',
+            'Pet ownership, family sharing and health update status.'
           )}
         </Typography.Text>
       </div>
@@ -95,12 +95,11 @@ export default function PetsDevicesPage() {
           </Card>
         </Col>
         <Col xs={24} xl={11}>
-          <Card title={translate('设备', 'Devices')}>
+          <Card title={translate('健康同步状态', 'Health sync status')}>
             <Table
               rowKey="id"
               dataSource={data.devices}
               columns={[
-                { title: translate('序列号', 'Serial'), dataIndex: 'serial' },
                 {
                   title: translate('宠物', 'Pet'),
                   dataIndex: 'petId',
@@ -117,7 +116,7 @@ export default function PetsDevicesPage() {
                   render: (value: number) => `${value}%`,
                 },
                 {
-                  title: translate('连接手机', 'Connected by'),
+                  title: translate('更新来源', 'Updated by'),
                   dataIndex: 'connectedBy',
                 },
                 {

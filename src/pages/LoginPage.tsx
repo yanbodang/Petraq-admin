@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Form, Input, List, Space, Tag, Typography } from 'antd';
-import { LockOutlined, LoginOutlined, MailOutlined, MobileOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, LoginOutlined, MailOutlined, UserOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
@@ -96,17 +96,17 @@ export default function LoginPage() {
             <Form form={form} layout="vertical" size="large" onFinish={handleSubmit}>
               <Form.Item
                 name="identifier"
-                label={translate('邮箱或手机号', 'Email or phone')}
-                rules={[{ required: true, message: translate('请输入邮箱或手机号', 'Please enter email or phone') }]}
+                label={translate('邮箱', 'Email')}
+                rules={[{ required: true, type: 'email', message: translate('请输入有效邮箱', 'Enter a valid email') }]}
               >
-                <Input prefix={<UserOutlined />} placeholder="superadmin@petraq.mock / yanbo@petraq.mock" />
+                <Input name="email" type="email" autoComplete="email" spellCheck={false} prefix={<UserOutlined />} placeholder="name@example.com" />
               </Form.Item>
               <Form.Item
                 name="password"
                 label={translate('密码', 'Password')}
                 rules={[{ required: true, message: translate('请输入密码', 'Please enter password') }]}
               >
-                <Input.Password prefix={<LockOutlined />} placeholder="PetraQ123" />
+                <Input.Password name="password" autoComplete="current-password" prefix={<LockOutlined />} placeholder={translate('输入密码…', 'Enter password…')} />
               </Form.Item>
               <Button type="primary" icon={<LoginOutlined />} htmlType="submit" loading={submitting} block>
                 {translate('登录进入后台', 'Sign in')}
@@ -140,9 +140,6 @@ export default function LoginPage() {
                     <Button key="email" type="link" onClick={() => fillDemoAccount(account.email)}>
                       {translate('用邮箱登录', 'Use email')}
                     </Button>,
-                    <Button key="phone" type="link" onClick={() => fillDemoAccount(account.phone)}>
-                      {translate('用手机号登录', 'Use phone')}
-                    </Button>,
                   ]}
                 >
                   <List.Item.Meta
@@ -160,10 +157,6 @@ export default function LoginPage() {
                         <Space size={8}>
                           <MailOutlined />
                           <span>{account.email}</span>
-                        </Space>
-                        <Space size={8}>
-                          <MobileOutlined />
-                          <span>{account.phone}</span>
                         </Space>
                       </Space>
                     }

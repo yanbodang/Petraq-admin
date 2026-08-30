@@ -42,6 +42,7 @@ export interface FamilyMember {
   role: FamilyMemberRole;
   joinedAt: string;
   invitationState: 'accepted' | 'pending';
+  relationship: string;
 }
 
 export interface Pet {
@@ -107,11 +108,34 @@ export interface ConsentRecord {
   familyId: string;
   subjectUserId: string;
   grantedToUserId: string;
-  scope: 'human.heart_rate' | 'human.steps' | 'human.sleep' | 'pet.latest' | 'pet.history';
+  scope: 'human_health' | 'pet_health';
   state: ConsentState;
   language: 'zh-CN' | 'en-US';
   version: string;
   updatedAt: string;
+}
+
+export interface HumanHealthRecord {
+  id: string;
+  familyId: string;
+  memberId: string;
+  heartRate: number | null;
+  restingHeartRate: number | null;
+  sleepMinutes: number | null;
+  temperatureCelsius: number | null;
+  updatedAt: string;
+  sharedWithFamily: boolean;
+}
+
+export interface FamilyInvitation {
+  id: string;
+  familyId: string;
+  invitedByUserId: string;
+  token: string;
+  createdAt: string;
+  expiresAt: string;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'expired';
+  acceptedByUserId?: string;
 }
 
 export interface PlatformAlert {
@@ -165,6 +189,18 @@ export const platformUsers: PlatformUser[] = [
     lastSeenAt: now.subtract(3, 'day').toISOString(),
   },
   {
+    id: 'user-will',
+    name: 'Will',
+    email: 'will@petraq.mock',
+    phone: '+61 400 000 004',
+    familyIds: ['family-wang'],
+    status: 'active',
+    lastSeenAt: now.subtract(3, 'minute').toISOString(),
+  },
+  { id: 'user-mum', name: 'May Wang', email: 'may@petraq.mock', phone: '+61 400 000 005', familyIds: ['family-wang'], status: 'active', lastSeenAt: now.subtract(8, 'minute').toISOString() },
+  { id: 'user-grandpa', name: 'Grandpa Wang', email: 'grandpa@petraq.mock', phone: '+61 400 000 006', familyIds: ['family-wang'], status: 'active', lastSeenAt: now.subtract(1, 'hour').toISOString() },
+  { id: 'user-grandma', name: 'Grandma Wang', email: 'grandma@petraq.mock', phone: '+61 400 000 007', familyIds: ['family-wang'], status: 'active', lastSeenAt: now.subtract(2, 'hour').toISOString() },
+  {
     id: 'user-chen',
     name: 'Mia Chen',
     email: 'mia.chen@petraq.mock',
@@ -192,7 +228,7 @@ export const families: Family[] = [
     plan: 'family_plus',
     region: 'Australia',
     createdAt: now.subtract(42, 'day').toISOString(),
-    memberCount: 4,
+    memberCount: 7,
     petCount: 3,
     deviceCount: 3,
     openAlerts: 1,
@@ -224,11 +260,15 @@ export const families: Family[] = [
 ];
 
 export const familyMembers: FamilyMember[] = [
-  { id: 'member-yanbo', familyId: 'family-wang', userId: 'user-yanbo', role: 'owner', joinedAt: now.subtract(42, 'day').toISOString(), invitationState: 'accepted' },
-  { id: 'member-anna', familyId: 'family-wang', userId: 'user-anna', role: 'admin', joinedAt: now.subtract(39, 'day').toISOString(), invitationState: 'accepted' },
-  { id: 'member-dad', familyId: 'family-wang', userId: 'user-dad', role: 'member', joinedAt: now.subtract(2, 'day').toISOString(), invitationState: 'pending' },
-  { id: 'member-chen', familyId: 'family-chen', userId: 'user-chen', role: 'owner', joinedAt: now.subtract(18, 'day').toISOString(), invitationState: 'accepted' },
-  { id: 'member-li', familyId: 'family-li', userId: 'user-li', role: 'owner', joinedAt: now.subtract(7, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-yanbo', familyId: 'family-wang', userId: 'user-yanbo', role: 'owner', relationship: 'Self', joinedAt: now.subtract(42, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-anna', familyId: 'family-wang', userId: 'user-anna', role: 'admin', relationship: 'Partner', joinedAt: now.subtract(39, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-dad', familyId: 'family-wang', userId: 'user-dad', role: 'member', relationship: 'Father', joinedAt: now.subtract(2, 'day').toISOString(), invitationState: 'pending' },
+  { id: 'member-will', familyId: 'family-wang', userId: 'user-will', role: 'member', relationship: 'Friend', joinedAt: now.subtract(5, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-mum', familyId: 'family-wang', userId: 'user-mum', role: 'member', relationship: 'Mother', joinedAt: now.subtract(36, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-grandpa', familyId: 'family-wang', userId: 'user-grandpa', role: 'viewer', relationship: 'Grandfather', joinedAt: now.subtract(20, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-grandma', familyId: 'family-wang', userId: 'user-grandma', role: 'viewer', relationship: 'Grandmother', joinedAt: now.subtract(20, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-chen', familyId: 'family-chen', userId: 'user-chen', role: 'owner', relationship: 'Self', joinedAt: now.subtract(18, 'day').toISOString(), invitationState: 'accepted' },
+  { id: 'member-li', familyId: 'family-li', userId: 'user-li', role: 'owner', relationship: 'Self', joinedAt: now.subtract(7, 'day').toISOString(), invitationState: 'accepted' },
 ];
 
 export const pets: Pet[] = [
@@ -265,10 +305,23 @@ export const petMedicalReports: PetMedicalReport[] = [
 ];
 
 export const consentRecords: ConsentRecord[] = [
-  { id: 'consent-001', familyId: 'family-wang', subjectUserId: 'user-yanbo', grantedToUserId: 'user-anna', scope: 'human.heart_rate', state: 'granted', language: 'en-US', version: '2026.06', updatedAt: now.subtract(2, 'day').toISOString() },
-  { id: 'consent-002', familyId: 'family-wang', subjectUserId: 'user-anna', grantedToUserId: 'user-yanbo', scope: 'human.steps', state: 'granted', language: 'en-US', version: '2026.06', updatedAt: now.subtract(3, 'day').toISOString() },
-  { id: 'consent-003', familyId: 'family-wang', subjectUserId: 'user-dad', grantedToUserId: 'user-yanbo', scope: 'human.heart_rate', state: 'not_granted', language: 'zh-CN', version: '2026.06', updatedAt: now.subtract(1, 'day').toISOString() },
-  { id: 'consent-004', familyId: 'family-wang', subjectUserId: 'user-dad', grantedToUserId: 'user-anna', scope: 'pet.latest', state: 'limited', language: 'zh-CN', version: '2026.06', updatedAt: now.subtract(12, 'hour').toISOString() },
+  { id: 'consent-001', familyId: 'family-wang', subjectUserId: 'user-yanbo', grantedToUserId: 'user-anna', scope: 'human_health', state: 'granted', language: 'en-US', version: '2026.08', updatedAt: now.subtract(2, 'day').toISOString() },
+  { id: 'consent-002', familyId: 'family-wang', subjectUserId: 'user-anna', grantedToUserId: 'user-yanbo', scope: 'human_health', state: 'granted', language: 'en-US', version: '2026.08', updatedAt: now.subtract(3, 'day').toISOString() },
+  { id: 'consent-003', familyId: 'family-wang', subjectUserId: 'user-dad', grantedToUserId: 'user-yanbo', scope: 'human_health', state: 'not_granted', language: 'zh-CN', version: '2026.08', updatedAt: now.subtract(1, 'day').toISOString() },
+  { id: 'consent-004', familyId: 'family-wang', subjectUserId: 'user-dad', grantedToUserId: 'user-anna', scope: 'pet_health', state: 'limited', language: 'zh-CN', version: '2026.08', updatedAt: now.subtract(12, 'hour').toISOString() },
+];
+
+export const humanHealthRecords: HumanHealthRecord[] = [
+  { id: 'health-yanbo', familyId: 'family-wang', memberId: 'member-yanbo', heartRate: 78, restingHeartRate: 62, sleepMinutes: 436, temperatureCelsius: 36.5, updatedAt: now.subtract(6, 'minute').toISOString(), sharedWithFamily: true },
+  { id: 'health-anna', familyId: 'family-wang', memberId: 'member-anna', heartRate: 81, restingHeartRate: 64, sleepMinutes: 418, temperatureCelsius: 36.6, updatedAt: now.subtract(18, 'minute').toISOString(), sharedWithFamily: true },
+  // Phase-one adapter: temporary member-health data is represented as Will only.
+  { id: 'health-will', familyId: 'family-wang', memberId: 'member-will', heartRate: 84, restingHeartRate: 66, sleepMinutes: 402, temperatureCelsius: 36.7, updatedAt: now.subtract(3, 'minute').toISOString(), sharedWithFamily: true },
+  { id: 'health-dad', familyId: 'family-wang', memberId: 'member-dad', heartRate: null, restingHeartRate: null, sleepMinutes: null, temperatureCelsius: null, updatedAt: now.subtract(1, 'day').toISOString(), sharedWithFamily: false },
+];
+
+export const familyInvitations: FamilyInvitation[] = [
+  { id: 'invite-001', familyId: 'family-wang', invitedByUserId: 'user-yanbo', token: 'PQ-WANG-7D2K', createdAt: now.subtract(2, 'hour').toISOString(), expiresAt: now.add(7, 'day').toISOString(), status: 'pending' },
+  { id: 'invite-002', familyId: 'family-wang', invitedByUserId: 'user-yanbo', token: 'PQ-WANG-4M8Q', createdAt: now.subtract(8, 'day').toISOString(), expiresAt: now.subtract(1, 'day').toISOString(), status: 'expired' },
 ];
 
 export const alerts: PlatformAlert[] = [
@@ -302,6 +355,8 @@ export function getScopedData(role: AdminScope, familyId?: string) {
     medicalRecords: petMedicalRecords.filter((record) => familyIds.has(record.familyId)),
     medicalReports: petMedicalReports.filter((report) => familyIds.has(report.familyId)),
     consents: consentRecords.filter((consent) => familyIds.has(consent.familyId)),
+    humanHealth: humanHealthRecords.filter((record) => familyIds.has(record.familyId)),
+    invitations: familyInvitations.filter((invitation) => familyIds.has(invitation.familyId)),
     alerts: alerts.filter((alert) => familyIds.has(alert.familyId)),
     audits: auditLogs.filter((log) => role === 'super_admin' || log.scope === 'family_admin'),
   };

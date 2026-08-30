@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Avatar, Button, Layout, Menu, Select, Space, theme } from 'antd';
+import { Avatar, Button, Drawer, Grid, Layout, Menu, Select, Space, theme } from 'antd';
 import {
   AuditOutlined,
   DashboardOutlined,
@@ -12,6 +12,9 @@ import {
   MedicineBoxOutlined,
   SafetyCertificateOutlined,
   HomeOutlined,
+  HeartOutlined,
+  QrcodeOutlined,
+  MenuOutlined,
 } from '@ant-design/icons';
 import { AppLanguage, useLocale } from '../../i18n';
 import { useAuth } from '../../auth/AuthContext';
@@ -20,6 +23,9 @@ const { Header, Sider, Content } = Layout;
 
 export default function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const screens = Grid.useBreakpoint();
+  const compact = !screens.lg;
   const navigate = useNavigate();
   const location = useLocation();
   const { t, translate, language, setLanguage, languageOptions } = useLocale();
@@ -49,7 +55,17 @@ export default function MainLayout() {
         {
           key: '/pets-devices',
           icon: <MobileOutlined />,
-          label: t('menu.petsDevices'),
+          label: t('menu.pets'),
+        },
+        {
+          key: '/health',
+          icon: <HeartOutlined />,
+          label: t('menu.health'),
+        },
+        {
+          key: '/invitations',
+          icon: <QrcodeOutlined />,
+          label: t('menu.invitations'),
         },
         {
           key: '/medical',
@@ -79,7 +95,8 @@ export default function MainLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
+      <a className="skip-link" href="#main-content">{translate('跳到主要内容', 'Skip to main content')}</a>
+      {!compact && <Sider
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
@@ -105,28 +122,55 @@ export default function MainLayout() {
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />
-      </Sider>
+      </Sider>}
+      <Drawer
+        title={t('app.logo.full')}
+        placement="left"
+        width={280}
+        open={compact && mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        styles={{ body: { padding: 0 } }}
+      >
+        <div style={{ padding: 16 }}>
+          <Select
+            value={language}
+            onChange={(value) => setLanguage(value as AppLanguage)}
+            options={languageOptions}
+            style={{ width: '100%' }}
+            aria-label={t('header.language')}
+          />
+        </div>
+        <Menu
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={({ key }) => { navigate(key); setMobileNavOpen(false); }}
+        />
+      </Drawer>
       <Layout>
         <Header
           style={{
-            padding: '0 24px',
+            padding: compact ? '0 16px' : '0 24px',
             background: colorBgContainer,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 20 }}>{currentUser?.role === 'super_admin' ? t('app.title.super') : t('app.title.family')}</h1>
+          <Space size={8}>
+            {compact && <Button type="text" icon={<MenuOutlined />} aria-label={translate('打开导航', 'Open navigation')} onClick={() => setMobileNavOpen(true)} />}
+            <h1 className="admin-title">{currentUser?.role === 'super_admin' ? t('app.title.super') : t('app.title.family')}</h1>
+          </Space>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Select
+            {!compact && <Select
               size="small"
               value={language}
               onChange={(value) => setLanguage(value as AppLanguage)}
               options={languageOptions}
               style={{ width: 140 }}
               aria-label={t('header.language')}
-            />
-            <Space size={10}>
+            />}
+            {!compact && <Space size={10}>
               <Avatar style={{ backgroundColor: '#0f7c6d' }} icon={<UserOutlined />} />
               <div style={{ lineHeight: 1.2 }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{currentUser?.name ?? translate('模拟用户', 'Mock User')}</div>
@@ -134,7 +178,7 @@ export default function MainLayout() {
                   {currentUser?.role === 'super_admin' ? translate('超级管理员', 'Super Admin') : translate('家庭管理员', 'Family Admin')}
                 </div>
               </div>
-            </Space>
+            </Space>}
             <Button
               icon={<LogoutOutlined />}
               onClick={() => {
@@ -142,14 +186,15 @@ export default function MainLayout() {
                 navigate('/login', { replace: true });
               }}
             >
-              {translate('退出', 'Logout')}
+              {compact ? null : translate('退出', 'Logout')}
             </Button>
           </div>
         </Header>
         <Content
+          id="main-content"
           style={{
-            margin: '24px 16px',
-            padding: 24,
+            margin: compact ? 0 : '24px 16px',
+            padding: compact ? 16 : 24,
             minHeight: 280,
             background: colorBgContainer,
           }}
