@@ -81,85 +81,42 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        padding: 24,
-        background:
-          'radial-gradient(circle at top left, rgba(15, 124, 109, 0.16), transparent 30%), linear-gradient(135deg, #f7faf9 0%, #eef5f3 100%)',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 960,
-          display: 'grid',
-          gap: 24,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        }}
-      >
-        <Card
-          bordered={false}
-          style={{
-            borderRadius: 24,
-            boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)',
-          }}
-        >
-          <Space direction="vertical" size={20} style={{ width: '100%' }}>
+    <main className="login-page">
+      <Card bordered={false} className="login-panel">
+        <div className="login-panel__grid">
+          <section className="login-panel__qr" aria-labelledby="qr-login-title">
+            <Space direction="vertical" size={20} align="center" style={{ width: '100%', textAlign: 'center' }}>
+              <Typography.Title id="qr-login-title" level={2}>{translate('使用 App 扫码登录', 'Scan with the App')}</Typography.Title>
+              <Typography.Paragraph type="secondary">{translate('打开 PetraQ App，在设置中选择“扫描 Admin 登录二维码”。', 'Open PetraQ App and choose “Scan Admin login QR code” in Settings.')}</Typography.Paragraph>
+              {qrError ? <Alert type="warning" showIcon message={qrError} action={<Button size="small" onClick={() => createQr()}>{translate('刷新', 'Refresh')}</Button>} /> : challenge ? (
+                <div className="login-panel__qr-code">
+                  <QRCodeSVG value={challenge.qrPayload} size={236} level="M" aria-label={translate('App 登录二维码', 'App sign-in QR code')} />
+                </div>
+              ) : <Spin size="large" />}
+              <Typography.Text type="secondary">{translate('在 App 中确认后，此页面会自动登录。二维码两分钟内有效。', 'Confirm in the App and this page will sign in automatically. The QR code expires in two minutes.')}</Typography.Text>
+            </Space>
+          </section>
+
+          <section className="login-panel__form" aria-labelledby="email-login-title">
+            <Space direction="vertical" size={24} style={{ width: '100%' }}>
             <div>
-              <Typography.Title level={2} style={{ marginBottom: 8 }}>
-                {translate('PetraQ 管理平台登录', 'Sign in to PetraQ Admin')}
-              </Typography.Title>
-              <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {translate(
-                  '根据新 App 的家庭、宠物设备、授权和平台运维模型重建。超级管理员查看全平台，家庭管理员只查看自己的家庭。',
-                  'Rebuilt around the new App model for families, pet devices, consent, and platform operations. Super Admin sees the platform; Family Admin sees only their family.'
-                )}
-              </Typography.Paragraph>
+              <Typography.Title id="email-login-title" level={2} style={{ marginBottom: 8 }}>{translate('邮箱登录', 'Email sign in')}</Typography.Title>
+              <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>{translate('使用你在 PetraQ App 注册的邮箱和密码。', 'Use the email and password registered in the PetraQ App.')}</Typography.Paragraph>
             </div>
-
-            {errorMessage && <Alert type="error" showIcon message={errorMessage} />}
-
-            <Form form={form} layout="vertical" size="large" onFinish={handleSubmit}>
-              <Form.Item
-                name="identifier"
-                label={translate('邮箱', 'Email')}
-                rules={[{ required: true, type: 'email', message: translate('请输入有效邮箱', 'Enter a valid email') }]}
-              >
-                <Input name="email" type="email" autoComplete="email" spellCheck={false} prefix={<UserOutlined />} placeholder="name@example.com" />
-              </Form.Item>
-              <Form.Item
-                name="password"
-                label={translate('密码', 'Password')}
-                rules={[{ required: true, message: translate('请输入密码', 'Please enter password') }]}
-              >
-                <Input.Password name="password" autoComplete="current-password" prefix={<LockOutlined />} placeholder={translate('输入密码…', 'Enter password…')} />
-              </Form.Item>
-              <Button type="primary" icon={<LoginOutlined />} htmlType="submit" loading={submitting} block>
-                {translate('登录进入后台', 'Sign in')}
-              </Button>
-            </Form>
-          </Space>
-        </Card>
-
-        <Card bordered={false} style={{ borderRadius: 24, boxShadow: '0 20px 60px rgba(15, 23, 42, 0.08)' }}>
-          <Space direction="vertical" size={18} align="center" style={{ width: '100%', textAlign: 'center' }}>
-            <div>
-              <Typography.Title level={3} style={{ marginBottom: 8 }}>{translate('使用 PetraQ App 扫码', 'Scan with the PetraQ App')}</Typography.Title>
-              <Typography.Paragraph type="secondary">{translate('在 App 设置中打开扫码登录，确认后此页面会自动进入。', 'Open Scan to sign in from App Settings. This page signs in automatically after you confirm.')}</Typography.Paragraph>
-            </div>
-            {qrError ? <Alert type="warning" showIcon message={qrError} action={<Button size="small" onClick={() => createQr()}>{translate('刷新', 'Refresh')}</Button>} /> : challenge ? (
-              <div style={{ padding: 16, background: '#fff', border: '1px solid #e2e9e5', borderRadius: 16 }}>
-                <QRCodeSVG value={challenge.qrPayload} size={214} level="M" aria-label={translate('App 登录二维码', 'App sign-in QR code')} />
-              </div>
-            ) : <Spin size="large" />}
-            <Typography.Text type="secondary">{translate('二维码两分钟内有效，且只能使用一次。', 'The QR code expires in two minutes and can only be used once.')}</Typography.Text>
-          </Space>
-        </Card>
-
-      </div>
-    </div>
+              {errorMessage && <Alert type="error" showIcon message={errorMessage} />}
+              <Form form={form} layout="vertical" size="large" onFinish={handleSubmit}>
+                <Form.Item name="identifier" label={translate('邮箱', 'Email')} rules={[{ required: true, type: 'email', message: translate('请输入有效邮箱', 'Enter a valid email') }]}>
+                  <Input name="email" type="email" autoComplete="email" spellCheck={false} prefix={<UserOutlined />} placeholder={translate('请输入邮箱', 'name@example.com')} />
+                </Form.Item>
+                <Form.Item name="password" label={translate('密码', 'Password')} rules={[{ required: true, message: translate('请输入密码', 'Please enter password') }]}>
+                  <Input.Password name="password" autoComplete="current-password" prefix={<LockOutlined />} placeholder={translate('请输入密码', 'Enter password…')} />
+                </Form.Item>
+                <Button type="primary" icon={<LoginOutlined />} htmlType="submit" loading={submitting} block>{translate('登录', 'Sign in')}</Button>
+              </Form>
+            </Space>
+          </section>
+        </div>
+      </Card>
+    </main>
   );
 }

@@ -87,8 +87,7 @@ const detectLanguage = (): AppLanguage => {
   if (stored && ['zh-CN', 'en-US'].includes(stored)) {
     return stored;
   }
-  const browserLang = navigator.language.toLowerCase();
-  return browserLang.startsWith('zh') ? 'zh-CN' : 'en-US';
+  return 'zh-CN';
 };
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
