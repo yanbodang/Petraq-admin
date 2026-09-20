@@ -1,4 +1,4 @@
-import { Alert, Card, Descriptions, Space, Typography } from 'antd';
+import { Card, Descriptions, Space, Typography } from 'antd';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
 
@@ -18,16 +18,6 @@ export default function PetraQSettingsPage() {
           )}
         </Typography.Text>
       </div>
-
-      <Alert
-        showIcon
-        type="info"
-        message={translate('服务接入状态', 'Service connection status')}
-        description={translate(
-          '测试数据已移除；业务列表将在 PetraQ 后端 API 接入后显示真实数据。',
-          'Test data has been removed. Business records will appear after the PetraQ backend APIs are connected.'
-        )}
-      />
 
       <Card title={isSuperAdmin ? translate('平台设置', 'Platform settings') : translate('家庭设置', 'Family settings')}>
         <Descriptions bordered column={1}>
