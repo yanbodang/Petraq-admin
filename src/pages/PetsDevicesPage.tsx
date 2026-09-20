@@ -1,13 +1,7 @@
-import { Card, Col, Row, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Col, Row, Space, Spin, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
-import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import {
-  familyName,
-  getScopedData,
-  petName,
-  userName,
-} from '../services/petraqAdminData';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
 
 const deviceColor = {
   online: 'green',
@@ -16,9 +10,18 @@ const deviceColor = {
 };
 
 export default function PetsDevicesPage() {
-  const { currentUser } = useAuth();
   const { translate } = useLocale();
-  const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
+  const remote = useRemoteGroupData({ includeHealth: true });
+  const family = remote.families[0];
+  const pets = remote.snapshot?.pets ?? [];
+  const members = remote.snapshot?.members ?? [];
+  const latestHealth = new Map<string, (typeof remote.health.pets)[number]>();
+  remote.health.pets.forEach((record) => {
+    if (!record.pet_id) return;
+    const previous = latestHealth.get(record.pet_id);
+    if (!previous || dayjs(record.recorded_at).isAfter(previous.recorded_at)) latestHealth.set(record.pet_id, record);
+  });
+  const healthRows = [...latestHealth.values()];
 
   const deviceStateLabel = (state: keyof typeof deviceColor) => {
     const labels: Record<keyof typeof deviceColor, string> = {
@@ -49,26 +52,27 @@ export default function PetsDevicesPage() {
         </Typography.Text>
       </div>
 
+      {remote.error && <Alert type="error" showIcon message={translate('宠物数据读取失败', 'Failed to load pet data')} description={remote.error} />}
+      {remote.loading && <Spin tip={translate('正在同步宠物数据…', 'Syncing pet data…')} />}
+
       <Row gutter={[16, 16]}>
         <Col xs={24} xl={13}>
           <Card title={translate('宠物', 'Pets')}>
             <Table
               rowKey="id"
-              dataSource={data.pets}
+              loading={remote.loading}
+              dataSource={pets}
               columns={[
                 { title: translate('宠物', 'Pet'), dataIndex: 'name' },
                 {
                   title: translate('家庭', 'Family'),
-                  dataIndex: 'familyId',
-                  render: (value: string) => familyName(value),
+                  key: 'family',
+                  render: () => family?.name ?? remote.snapshot?.group?.name ?? '-',
                 },
                 {
                   title: translate('主人', 'Owner'),
-                  dataIndex: 'ownerMemberId',
-                  render: (memberId: string) => {
-                    const member = data.members.find((item) => item.id === memberId);
-                    return member ? userName(member.userId) : memberId;
-                  },
+                  dataIndex: 'owner_user_id',
+                  render: (userId: string) => members.find((item) => item.user_id === userId)?.name ?? userId,
                 },
                 {
                   title: translate('类型', 'Species'),
@@ -77,17 +81,20 @@ export default function PetsDevicesPage() {
                 },
                 {
                   title: translate('评分', 'Score'),
-                  dataIndex: 'healthScore',
-                  render: (value: number | null) => value ?? '-',
+                  key: 'healthScore',
+                  render: () => '-',
                 },
                 {
                   title: translate('心率', 'Heart rate'),
-                  dataIndex: 'heartRate',
-                  render: (value: number | null) => (value ? `${value} bpm` : '-'),
+                  key: 'heartRate',
+                  render: (_: unknown, pet: { id: string }) => {
+                    const record = remote.health.pets.find((item) => item.pet_id === pet.id && item.metric_type === 'heart_rate');
+                    return record ? `${record.value} ${record.unit || 'bpm'}` : '-';
+                  },
                 },
                 {
                   title: translate('共享', 'Shared'),
-                  dataIndex: 'sharedWithFamily',
+                  dataIndex: 'shared_with_group',
                   render: (value: boolean) => <Tag color={value ? 'green' : 'default'}>{value ? translate('是', 'yes') : translate('否', 'no')}</Tag>,
                 },
               ]}
@@ -98,30 +105,35 @@ export default function PetsDevicesPage() {
           <Card title={translate('健康同步状态', 'Health sync status')}>
             <Table
               rowKey="id"
-              dataSource={data.devices}
+              loading={remote.loading}
+              dataSource={healthRows}
               columns={[
                 {
                   title: translate('宠物', 'Pet'),
-                  dataIndex: 'petId',
-                  render: (value: string) => petName(value),
+                  dataIndex: 'pet_id',
+                  render: (value: string) => pets.find((pet) => pet.id === value)?.name ?? value,
                 },
                 {
                   title: translate('状态', 'State'),
-                  dataIndex: 'state',
-                  render: (value: keyof typeof deviceColor) => <Tag color={deviceColor[value]}>{deviceStateLabel(value)}</Tag>,
+                  key: 'state',
+                  render: (_: unknown, record: { recorded_at: string }) => {
+                    const hours = dayjs().diff(dayjs(record.recorded_at), 'hour');
+                    const state: keyof typeof deviceColor = hours <= 1 ? 'online' : hours <= 24 ? 'recent' : 'offline';
+                    return <Tag color={deviceColor[state]}>{deviceStateLabel(state)}</Tag>;
+                  },
                 },
                 {
-                  title: translate('电量', 'Battery'),
-                  dataIndex: 'battery',
-                  render: (value: number) => `${value}%`,
+                  title: translate('最新指标', 'Latest metric'),
+                  dataIndex: 'metric_type',
                 },
                 {
                   title: translate('更新来源', 'Updated by'),
-                  dataIndex: 'connectedBy',
+                  key: 'source',
+                  render: () => translate('后端健康同步', 'Backend health sync'),
                 },
                 {
                   title: translate('上次同步', 'Last sync'),
-                  dataIndex: 'lastSyncedAt',
+                  dataIndex: 'recorded_at',
                   render: (value: string) => dayjs(value).format('MM-DD HH:mm'),
                 },
               ]}

@@ -1,104 +1,69 @@
-import { Card, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Space, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import { familyName, getScopedData, petName } from '../services/petraqAdminData';
-import { localizeMockText } from '../services/textLocalization';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
+import { groupSyncService, SyncRun } from '../services/groupSyncService';
+
+const statusColors: Record<string, string> = {
+  completed: 'green', success: 'green', running: 'blue', pending: 'gold', failed: 'red',
+};
 
 export default function OperationsAuditPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, session } = useAuth();
   const { translate } = useLocale();
-  const role = currentUser?.role ?? 'family_admin';
-  const data = getScopedData(role, currentUser?.familyId);
+  const remote = useRemoteGroupData();
+  const [runs, setRuns] = useState<SyncRun[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const family = remote.families[0];
 
-  const severityLabel = (severity: string) => {
-    const labels: Record<string, string> = {
-      info: translate('信息', 'Info'),
-      warning: translate('警告', 'Warning'),
-      critical: translate('严重', 'Critical'),
-    };
-    return labels[severity] ?? severity;
-  };
-
-  const statusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      open: translate('待处理', 'Open'),
-      acknowledged: translate('已确认', 'Acknowledged'),
-      resolved: translate('已解决', 'Resolved'),
-    };
-    return labels[status] ?? status;
-  };
-
-  const scopeLabel = (scope: string) => {
-    return scope === 'super_admin' ? translate('超级管理员', 'Super Admin') : translate('家庭管理员', 'Family Admin');
-  };
+  useEffect(() => {
+    if (!family?.id || !session?.token) return;
+    setLoading(true);
+    setError(null);
+    groupSyncService.listSyncRuns(family.id, session.token)
+      .then(setRuns)
+      .catch((caught) => setError(caught instanceof Error ? caught.message : translate('读取同步记录失败', 'Failed to load sync history')))
+      .finally(() => setLoading(false));
+  }, [family?.id, session?.token, translate]);
 
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
       <div>
         <Typography.Title level={2}>
-          {role === 'super_admin' ? translate('运维审计', 'Operations Audit') : translate('家庭操作记录', 'Family Audit Log')}
+          {currentUser?.role === 'super_admin' ? translate('运维审计', 'Operations Audit') : translate('家庭操作记录', 'Family Audit Log')}
         </Typography.Title>
-        <Typography.Text type="secondary">
-          {translate(
-            '用于追踪告警、操作行为、设备同步状态和权限变更。',
-            'Alerts, operator actions, device sync status, and permission changes for traceability.'
-          )}
-        </Typography.Text>
+        <Typography.Text type="secondary">{translate('显示后端实际执行的数据同步记录。', 'Backend data synchronization history.')}</Typography.Text>
       </div>
 
-      <Card title={translate('待处理告警', 'Open alerts')}>
+      {(remote.error || error) && <Alert type="error" showIcon message={translate('操作记录读取失败', 'Failed to load operations')} description={remote.error || error} />}
+
+      <Card title={translate('数据同步记录', 'Data sync history')}>
         <Table
           rowKey="id"
-          dataSource={data.alerts}
+          loading={remote.loading || loading}
+          dataSource={runs}
           columns={[
-            {
-              title: translate('家庭', 'Family'),
-              dataIndex: 'familyId',
-              render: (value: string) => familyName(value),
-            },
-            {
-              title: translate('宠物', 'Pet'),
-              dataIndex: 'petId',
-              render: (value?: string) => petName(value),
-            },
-            {
-              title: translate('级别', 'Severity'),
-              dataIndex: 'severity',
-              render: (value: string) => <Tag color={value === 'critical' ? 'red' : 'gold'}>{severityLabel(value)}</Tag>,
-            },
-            { title: translate('消息', 'Message'), dataIndex: 'message', render: (value: string) => localizeMockText(value, translate) },
-            { title: translate('状态', 'Status'), dataIndex: 'status', render: (value: string) => statusLabel(value) },
-            {
-              title: translate('创建时间', 'Created'),
-              dataIndex: 'createdAt',
-              render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
-            },
+            { title: translate('来源', 'Source'), dataIndex: 'source_type' },
+            { title: translate('状态', 'Status'), dataIndex: 'status', render: (value: string) => <Tag color={statusColors[value] ?? 'default'}>{value}</Tag> },
+            { title: translate('读取', 'Read'), dataIndex: 'records_read' },
+            { title: translate('写入', 'Written'), dataIndex: 'records_written' },
+            { title: translate('未匹配', 'Unmapped'), dataIndex: 'records_unmapped' },
+            { title: translate('错误', 'Error'), dataIndex: 'error_message', render: (value?: string) => value || '-' },
+            { title: translate('开始时间', 'Started'), dataIndex: 'started_at', render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm:ss') },
+            { title: translate('完成时间', 'Finished'), dataIndex: 'finished_at', render: (value?: string) => value ? dayjs(value).format('YYYY-MM-DD HH:mm:ss') : '-' },
           ]}
         />
       </Card>
 
-      <Card title={translate('审计日志', 'Audit log')}>
-        <Table
-          rowKey="id"
-          dataSource={data.audits}
-          columns={[
-            { title: translate('操作人', 'Actor'), dataIndex: 'actor' },
-            {
-              title: translate('范围', 'Scope'),
-              dataIndex: 'scope',
-              render: (value: string) => <Tag color={value === 'super_admin' ? 'purple' : 'blue'}>{scopeLabel(value)}</Tag>,
-            },
-            { title: translate('动作', 'Action'), dataIndex: 'action', render: (value: string) => localizeMockText(value, translate) },
-            { title: translate('对象', 'Target'), dataIndex: 'target', render: (value: string) => localizeMockText(value, translate) },
-            {
-              title: translate('时间', 'Time'),
-              dataIndex: 'createdAt',
-              render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
-            },
-          ]}
-        />
-      </Card>
+      <Alert
+        type="info"
+        showIcon
+        message={translate('告警与通用审计尚未接入', 'Alerts and general audit are not available yet')}
+        description={translate('当前后端没有告警或通用操作日志表，因此本页不再展示浏览器内的模拟记录。', 'The backend has no alert or general audit-log store, so browser-only mock records are no longer displayed.')}
+      />
     </Space>
   );
 }

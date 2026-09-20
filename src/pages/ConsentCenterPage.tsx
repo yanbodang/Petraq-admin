@@ -1,8 +1,7 @@
-import { Alert, Card, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Space, Spin, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
-import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import { familyName, getScopedData, userName } from '../services/petraqAdminData';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
 
 const consentColor = {
   granted: 'green',
@@ -12,9 +11,19 @@ const consentColor = {
 };
 
 export default function ConsentCenterPage() {
-  const { currentUser } = useAuth();
   const { translate } = useLocale();
-  const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
+  const remote = useRemoteGroupData();
+  const family = remote.families[0];
+  const consentRows = (remote.snapshot?.members ?? []).flatMap((member) => ([
+    {
+      id: `${member.id}-human`, familyName: family?.name ?? remote.snapshot?.group?.name ?? '-', subject: member.name,
+      scope: 'human_health', state: member.share_human_health ? 'granted' : 'not_granted', updatedAt: member.joined_at,
+    },
+    {
+      id: `${member.id}-pet`, familyName: family?.name ?? remote.snapshot?.group?.name ?? '-', subject: member.name,
+      scope: 'pet_health', state: member.share_pet_health ? 'granted' : 'not_granted', updatedAt: member.joined_at,
+    },
+  ]));
 
   const consentLabel = (state: keyof typeof consentColor) => {
     const labels: Record<keyof typeof consentColor, string> = {
@@ -56,25 +65,22 @@ export default function ConsentCenterPage() {
         )}
       />
 
+      {remote.error && <Alert type="error" showIcon message={translate('授权数据读取失败', 'Failed to load consent data')} description={remote.error} />}
+      {remote.loading && <Spin tip={translate('正在同步授权数据…', 'Syncing consent data…')} />}
+
       <Card title={translate('授权记录', 'Consent records')}>
         <Table
           rowKey="id"
-          dataSource={data.consents}
+          loading={remote.loading}
+          dataSource={consentRows}
           columns={[
             {
               title: translate('家庭', 'Family'),
-              dataIndex: 'familyId',
-              render: (value: string) => familyName(value),
+              dataIndex: 'familyName',
             },
             {
               title: translate('数据主体', 'Subject'),
-              dataIndex: 'subjectUserId',
-              render: (value: string) => userName(value),
-            },
-            {
-              title: translate('授权给', 'Granted to'),
-              dataIndex: 'grantedToUserId',
-              render: (value: string) => userName(value),
+              dataIndex: 'subject',
             },
             { title: translate('范围', 'Scope'), dataIndex: 'scope', render: (value: string) => scopeLabel(value) },
             {
@@ -82,10 +88,8 @@ export default function ConsentCenterPage() {
               dataIndex: 'state',
               render: (value: keyof typeof consentColor) => <Tag color={consentColor[value]}>{consentLabel(value)}</Tag>,
             },
-            { title: translate('语言', 'Language'), dataIndex: 'language' },
-            { title: translate('版本', 'Version'), dataIndex: 'version' },
             {
-              title: translate('更新时间', 'Updated'),
+              title: translate('成员加入时间', 'Member joined'),
               dataIndex: 'updatedAt',
               render: (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm'),
             },

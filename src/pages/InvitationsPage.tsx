@@ -1,41 +1,63 @@
 import { CopyOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { Button, Card, Col, message, Popconfirm, Row, Space, Table, Tag, Typography } from 'antd';
-import dayjs from 'dayjs';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
-import { FamilyInvitation, getScopedData, userName } from '../services/petraqAdminData';
+import { GroupInvitation, groupSyncService } from '../services/groupSyncService';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
 
 export default function InvitationsPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, session } = useAuth();
   const { translate } = useLocale();
-  const data = getScopedData(currentUser?.role ?? 'family_admin', currentUser?.familyId);
-  const [invitations, setInvitations] = useState(data.invitations);
+  const remote = useRemoteGroupData();
+  const family = remote.families[0];
+  const [invitations, setInvitations] = useState<GroupInvitation[]>([]);
+  const [loading, setLoading] = useState(false);
   const active = useMemo(() => invitations.find((item) => item.status === 'pending'), [invitations]);
-  const inviteUrl = active ? `${window.location.origin}/join/${active.token}` : '';
+  const inviteUrl = active ? `petraq://join?token=${active.token}` : '';
   const formatDate = (value: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 
-  const createInvitation = () => {
-    const family = data.families[0];
-    if (!family || !currentUser) {
+  const loadInvitations = useCallback(async () => {
+    if (!family || !session?.token) return;
+    setLoading(true);
+    try {
+      setInvitations(await groupSyncService.listInvitations(family.id, session.token));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : translate('读取邀请失败', 'Failed to load invitations'));
+    } finally {
+      setLoading(false);
+    }
+  }, [family, session?.token, translate]);
+
+  useEffect(() => { void loadInvitations(); }, [loadInvitations]);
+
+  const createInvitation = async () => {
+    if (!family || !currentUser || !session?.token) {
       message.warning(translate('请先创建或选择家庭', 'Create or select a family first'));
       return;
     }
-    const now = dayjs();
-    const next: FamilyInvitation = {
-      id: `invite-${Date.now()}`,
-      familyId: family.id,
-      invitedByUserId: currentUser.id,
-      token: `PQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-      createdAt: now.toISOString(),
-      expiresAt: now.add(7, 'day').toISOString(),
-      status: 'pending',
-    };
-    setInvitations((items) => [next, ...items]);
+    setLoading(true);
+    try {
+      await groupSyncService.createInvitation(family.id, session.token);
+      await loadInvitations();
+      message.success(translate('邀请已创建', 'Invitation created'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : translate('创建邀请失败', 'Failed to create invitation'));
+      setLoading(false);
+    }
   };
 
-  const revoke = (id: string) => setInvitations((items) => items.map((item) => item.id === id ? { ...item, status: 'revoked' } : item));
+  const revoke = async (id: string) => {
+    if (!family || !session?.token) return;
+    try {
+      await groupSyncService.revokeInvitation(family.id, id, session.token);
+      await loadInvitations();
+      message.success(translate('邀请已撤销', 'Invitation revoked'));
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : translate('撤销邀请失败', 'Failed to revoke invitation'));
+    }
+  };
 
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
@@ -54,7 +76,7 @@ export default function InvitationsPage() {
               <Space direction="vertical" align="center" size={16} style={{ width: '100%' }}>
                 <QRCodeSVG value={inviteUrl} size={196} level="M" aria-label={translate('家庭邀请二维码', 'Family invitation QR code')} />
                 <div style={{ textAlign: 'center' }}>
-                  <Typography.Title level={4}>{data.families[0]?.name}</Typography.Title>
+                  <Typography.Title level={4}>{family?.name}</Typography.Title>
                   <Typography.Text type="secondary">{translate('扫码加入家庭；共享健康数据为可选项。', 'Scan to join. Health sharing remains optional.')}</Typography.Text>
                 </div>
                 <Button icon={<CopyOutlined />} onClick={async () => { await navigator.clipboard.writeText(inviteUrl); message.success(translate('邀请链接已复制', 'Invitation link copied')); }}>{translate('复制邀请链接', 'Copy invitation link')}</Button>
@@ -68,16 +90,17 @@ export default function InvitationsPage() {
           <Card title={translate('邀请记录', 'Invitation history')}>
             <Table
               rowKey="id"
+              loading={loading || remote.loading}
               dataSource={invitations}
               pagination={false}
               scroll={{ x: 700 }}
               columns={[
-                { title: translate('邀请人', 'Invited by'), dataIndex: 'invitedByUserId', render: userName },
+                { title: translate('邀请人', 'Invited by'), dataIndex: 'invited_by_name', render: (value: string) => value || currentUser?.name || '-' },
                 { title: translate('邀请码', 'Code'), dataIndex: 'token' },
                 { title: translate('状态', 'Status'), dataIndex: 'status', render: (value: string) => <Tag color={value === 'pending' ? 'green' : value === 'accepted' ? 'blue' : 'default'}>{value}</Tag> },
-                { title: translate('创建时间', 'Created'), dataIndex: 'createdAt', render: formatDate },
-                { title: translate('到期时间', 'Expires'), dataIndex: 'expiresAt', render: formatDate },
-                { title: translate('操作', 'Action'), key: 'action', render: (_, record: FamilyInvitation) => record.status === 'pending' ? <Popconfirm title={translate('撤销这个邀请？', 'Revoke this invitation?')} description={translate('该二维码将立即失效。', 'The QR code will stop working immediately.')} okText={translate('撤销', 'Revoke')} cancelText={translate('取消', 'Cancel')} onConfirm={() => revoke(record.id)}><Button danger type="text" icon={<StopOutlined />}>{translate('撤销', 'Revoke')}</Button></Popconfirm> : null },
+                { title: translate('创建时间', 'Created'), dataIndex: 'created_at', render: formatDate },
+                { title: translate('到期时间', 'Expires'), dataIndex: 'expires_at', render: formatDate },
+                { title: translate('操作', 'Action'), key: 'action', render: (_, record: GroupInvitation) => record.status === 'pending' ? <Popconfirm title={translate('撤销这个邀请？', 'Revoke this invitation?')} description={translate('该二维码将立即失效。', 'The QR code will stop working immediately.')} okText={translate('撤销', 'Revoke')} cancelText={translate('取消', 'Cancel')} onConfirm={() => revoke(record.id)}><Button danger type="text" icon={<StopOutlined />}>{translate('撤销', 'Revoke')}</Button></Popconfirm> : null },
               ]}
             />
           </Card>
