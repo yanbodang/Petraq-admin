@@ -1,7 +1,8 @@
-import { Card, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Space, Spin, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
 import { familyName, getScopedData, userName } from '../services/petraqAdminData';
 
 const statusColor = {
@@ -15,6 +16,13 @@ export default function UsersAndMembersPage() {
   const { translate } = useLocale();
   const role = currentUser?.role ?? 'family_admin';
   const data = getScopedData(role, currentUser?.familyId);
+  const remote = useRemoteGroupData();
+  const memberRows = remote.snapshot?.members.map((member) => ({
+    ...member,
+    userId: member.user_id,
+    invitationState: 'accepted' as const,
+    joinedAt: member.joined_at,
+  })) ?? data.members;
 
   const userStatusLabel = (status: keyof typeof statusColor) => {
     const labels: Record<keyof typeof statusColor, string> = {
@@ -56,6 +64,9 @@ export default function UsersAndMembersPage() {
         </Typography.Text>
       </div>
 
+      {remote.error && <Alert type="error" showIcon message={translate('家庭成员读取失败', 'Failed to load family members')} description={remote.error} />}
+      {remote.loading && <Spin tip={translate('正在同步家庭成员…', 'Syncing family members…')} />}
+
       {role === 'super_admin' ? (
         <Card>
           <Table
@@ -87,12 +98,12 @@ export default function UsersAndMembersPage() {
         <Card>
           <Table
             rowKey="id"
-            dataSource={data.members}
+            dataSource={memberRows}
             columns={[
               {
                 title: translate('成员', 'Member'),
-                dataIndex: 'userId',
-                render: (value: string) => userName(value),
+                dataIndex: 'name',
+                render: (value: string | undefined, record: { userId: string }) => value ?? userName(record.userId),
               },
               {
                 title: translate('角色', 'Role'),

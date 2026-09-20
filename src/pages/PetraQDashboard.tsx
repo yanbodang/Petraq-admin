@@ -1,9 +1,11 @@
-import { Card, Col, Row, Space, Statistic, Table, Tag, Typography } from 'antd';
+import { Alert, Card, Col, Row, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import { HeartOutlined, TeamOutlined, UserOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
+import { useRemoteGroupData } from '../hooks/useRemoteGroupData';
 import {
+  Device,
   familyName,
   formatRelative,
   getScopedData,
@@ -22,9 +24,45 @@ export default function PetraQDashboard() {
   const { translate } = useLocale();
   const role = currentUser?.role ?? 'family_admin';
   const data = getScopedData(role, currentUser?.familyId);
+  const remote = useRemoteGroupData({ includeHealth: true });
+  const remoteFamily = remote.families.find((family) => family.id === currentUser?.familyId) ?? remote.families[0];
+  const familyRows = remote.families.length
+    ? remote.families.map((family) => ({
+        ...family,
+        memberCount: family.id === remoteFamily?.id ? remote.snapshot?.members.length ?? family.memberCount : family.memberCount,
+        petCount: family.id === remoteFamily?.id ? remote.snapshot?.pets.length ?? family.petCount : family.petCount,
+      }))
+    : data.families;
 
-  const sharedPeople = data.humanHealth.filter((record) => record.sharedWithFamily).length;
-  const sharedPets = data.pets.filter((pet) => pet.sharedWithFamily).length;
+  const sharedPeople = remote.snapshot
+    ? remote.snapshot.members.filter((member) => member.share_human_health).length
+    : data.humanHealth.filter((record) => record.sharedWithFamily).length;
+  const sharedPets = remote.snapshot
+    ? remote.snapshot.pets.filter((pet) => pet.shared_with_group).length
+    : data.pets.filter((pet) => pet.sharedWithFamily).length;
+  const userCount = remote.snapshot?.members.length ?? data.users.length;
+  const latestByPet = new Map<string, Device>();
+  for (const record of remote.health.pets) {
+    if (!record.pet_id) continue;
+    const existing = latestByPet.get(record.pet_id);
+    if (!existing || dayjs(record.recorded_at).isAfter(existing.lastSyncedAt)) {
+      latestByPet.set(record.pet_id, {
+        id: `qa-${record.pet_id}`,
+        familyId: remoteFamily?.id ?? currentUser?.familyId ?? '',
+        petId: record.pet_id,
+        serial: '',
+        firmware: '',
+        state: 'recent',
+        battery: 0,
+        connectedBy: 'QA sync',
+        lastConnectedAt: record.recorded_at,
+        lastSyncedAt: record.recorded_at,
+        uploadedPackets24h: 0,
+      });
+    }
+  }
+  const recentHealth = [...latestByPet.values()];
+  const remotePetName = (petId?: string) => remote.snapshot?.pets.find((pet) => pet.id === petId)?.name ?? petName(petId);
 
   const deviceStateLabel = (state: keyof typeof stateColor) => {
     const labels: Record<keyof typeof stateColor, string> = {
@@ -50,7 +88,7 @@ export default function PetraQDashboard() {
         <Typography.Title level={2} style={{ marginBottom: 4 }}>
           {role === 'super_admin'
             ? translate('平台概览', 'Platform Overview')
-            : translate(`${data.families[0]?.name ?? '家庭'}概览`, `${data.families[0]?.name ?? 'Family'} Overview`)}
+            : translate(`${remoteFamily?.name ?? data.families[0]?.name ?? '家庭'}概览`, `${remoteFamily?.name ?? data.families[0]?.name ?? 'Family'} Overview`)}
         </Typography.Title>
         <Typography.Text type="secondary">
           {role === 'super_admin'
@@ -59,15 +97,18 @@ export default function PetraQDashboard() {
         </Typography.Text>
       </div>
 
+      {remote.error && <Alert type="error" showIcon message={translate('家庭数据读取失败', 'Failed to load family data')} description={remote.error} />}
+      {remote.loading && <Spin tip={translate('正在同步家庭数据…', 'Syncing family data…')} />}
+
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title={translate('家庭', 'Families')} value={data.families.length} prefix={<TeamOutlined />} />
+            <Statistic title={translate('家庭', 'Families')} value={familyRows.length} prefix={<TeamOutlined />} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card>
-            <Statistic title={translate('用户', 'Users')} value={data.users.length} prefix={<UserOutlined />} />
+            <Statistic title={translate('用户', 'Users')} value={userCount} prefix={<UserOutlined />} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -88,7 +129,7 @@ export default function PetraQDashboard() {
             <Table
               rowKey="id"
               pagination={false}
-              dataSource={data.families}
+              dataSource={familyRows}
               columns={[
                 { title: translate('家庭', 'Family'), dataIndex: 'name' },
                 { title: translate('地区', 'Region'), dataIndex: 'region', render: (value: string) => localizeMockText(value, translate) },
@@ -110,9 +151,9 @@ export default function PetraQDashboard() {
               rowKey="id"
               pagination={false}
               size="small"
-              dataSource={data.devices.slice(0, 6)}
+              dataSource={recentHealth.length ? recentHealth.slice(0, 6) : data.devices.slice(0, 6)}
               columns={[
-                { title: translate('宠物', 'Pet'), dataIndex: 'petId', render: (value: string) => petName(value) },
+                { title: translate('宠物', 'Pet'), dataIndex: 'petId', render: (value: string) => remotePetName(value) },
                 {
                   title: translate('数据状态', 'Data status'),
                   dataIndex: 'state',

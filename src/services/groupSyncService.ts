@@ -23,7 +23,7 @@ export interface GroupHealthData {
 }
 
 export interface GroupSnapshot {
-  members: Array<{ id: string; user_id: string; name: string; role: string; relationship: string; share_human_health: boolean; share_pet_health: boolean }>;
+  members: Array<{ id: string; user_id: string; name: string; role: string; relationship: string; share_human_health: boolean; share_pet_health: boolean; joined_at: string }>;
   pets: Array<{ id: string; owner_user_id: string; name: string; species: string; shared_with_group: boolean }>;
 }
 
@@ -53,8 +53,8 @@ export const groupSyncService = {
     return payload.items ?? [];
   },
 
-  async getGroupHealth(groupId: string, token: string): Promise<GroupHealthData> {
-    const response = await fetch(apiUrl(`api/groups/${encodeURIComponent(groupId)}/health`), {
+  async getGroupHealth(groupId: string, token: string, limit = 5000): Promise<GroupHealthData> {
+    const response = await fetch(apiUrl(`api/groups/${encodeURIComponent(groupId)}/health?limit=${limit}`), {
       headers: { Authorization: `Bearer ${token}` },
     });
     const payload = await response.json() as GroupHealthData & { error?: string };
