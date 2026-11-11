@@ -150,13 +150,25 @@ function DiagnosticHistory({ groupId, token, range, userId, deviceId, category, 
           dataSource={items}
           loading={loading}
           pagination={false}
-          scroll={{ x: 1240 }}
+          scroll={{ x: 1510 }}
           columns={[
             { title: translate('发生时间', 'Occurred'), dataIndex: 'occurred_at', render: formatTime },
             { title: translate('接收时间', 'Received'), dataIndex: 'received_at', render: formatTime },
             { title: translate('用户', 'User'), dataIndex: 'user_name', render: (name, row) => name || row.user_id },
             { title: translate('安装实例', 'Installation'), dataIndex: 'installation_id', render: (value) => value ? <Typography.Text copyable={{ text: value }}>{value.slice(0, 8)}</Typography.Text> : '—' },
             { title: translate('启动会话', 'App run'), dataIndex: 'run_id', render: (value) => value ? <Typography.Text copyable={{ text: value }}>{value.slice(0, 8)}</Typography.Text> : '—' },
+            {
+              title: translate('手机与版本', 'Phone and versions'),
+              dataIndex: 'client_context',
+              render: (client: DeviceDiagnostic['client_context']) => client
+                ? <Space direction="vertical" size={0}>
+                    <span>{[client.deviceType, client.deviceModel].filter(Boolean).join(' · ') || '—'}</span>
+                    <Typography.Text type="secondary">{[client.osName, client.osVersion].filter(Boolean).join(' ') || '—'}</Typography.Text>
+                    <Typography.Text type="secondary">App {client.appVersion ?? '—'}{client.appBuild ? ` (${client.appBuild})` : ''}</Typography.Text>
+                  </Space>
+                : '—',
+            },
+            { title: translate('上报 IP', 'Upload IP'), dataIndex: 'client_ip', render: (value) => value || '—' },
             { title: translate('页面', 'Screen'), dataIndex: 'screen', render: (value) => value || '—' },
             { title: translate('蓝牙配件', 'Bluetooth accessory'), dataIndex: 'device_name', render: (name, row) => name || row.device_id || (row.peripheral_id ? <Typography.Text copyable={{ text: row.peripheral_id }}>{row.peripheral_id.slice(0, 8)}</Typography.Text> : '—') },
             { title: translate('事件', 'Event'), dataIndex: 'event', render: (event) => event === 'app_operation' ? translate('用户操作', 'User operation') : event === 'app_exception' ? translate('程序异常', 'App exception') : event },

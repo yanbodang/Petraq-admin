@@ -104,6 +104,15 @@ export interface DiagnosticRun {
 }
 
 export interface DeviceDiagnostic {
+  client_ip: string | null;
+  client_context: {
+    deviceType?: string;
+    deviceModel?: string;
+    osName?: string;
+    osVersion?: string;
+    appVersion?: string;
+    appBuild?: string;
+  } | null;
   installation_id: string | null;
   run_id: string | null;
   screen: string | null;
