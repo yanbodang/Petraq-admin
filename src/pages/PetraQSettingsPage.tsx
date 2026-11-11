@@ -1,4 +1,5 @@
 import { Card, Descriptions, Space, Typography } from 'antd';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n';
 
@@ -40,6 +41,9 @@ export default function PetraQSettingsPage() {
             )}
           </Descriptions.Item>
         </Descriptions>
+      </Card>
+      <Card title={translate('设备数据与诊断', 'Device data and diagnostics')}>
+        <Link to="/device-data">{translate('查看操作和异常记录', 'View operations and exceptions')}</Link>
       </Card>
     </Space>
   );

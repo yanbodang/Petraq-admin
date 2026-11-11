@@ -68,6 +68,7 @@ interface DeviceHistoryQuery {
   before?: string;
   userId?: string;
   deviceId?: string;
+  category?: 'operations' | 'errors';
 }
 
 export interface DeviceHistoryPage<T> {
@@ -142,11 +143,12 @@ async function readGroupData<T>(
   return payload;
 }
 
-function historyQuery({ from, to, before, userId, deviceId }: DeviceHistoryQuery) {
+function historyQuery({ from, to, before, userId, deviceId, category }: DeviceHistoryQuery) {
   const query = new URLSearchParams({ from, to, limit: '50' });
   if (before) query.set('before', before);
   if (userId) query.set('userId', userId);
   if (deviceId) query.set('deviceId', deviceId);
+  if (category) query.set('category', category);
   return query;
 }
 

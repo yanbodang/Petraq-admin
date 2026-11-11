@@ -64,11 +64,6 @@ export default function MainLayout() {
           label: t('menu.health'),
         },
         {
-          key: '/device-data',
-          icon: <LineChartOutlined />,
-          label: t('menu.deviceData'),
-        },
-        {
           key: '/invitations',
           icon: <QrcodeOutlined />,
           label: t('menu.invitations'),
@@ -92,6 +87,11 @@ export default function MainLayout() {
           key: '/settings',
           icon: <SettingOutlined />,
           label: t('menu.settings'),
+        },
+        {
+          key: '/device-data',
+          icon: <LineChartOutlined />,
+          label: t('menu.deviceData'),
         },
       ];
       return baseItems;
