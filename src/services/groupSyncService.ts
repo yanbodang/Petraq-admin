@@ -69,6 +69,8 @@ interface DeviceHistoryQuery {
   userId?: string;
   deviceId?: string;
   category?: 'operations' | 'errors';
+  installationId?: string;
+  runId?: string;
 }
 
 export interface DeviceHistoryPage<T> {
@@ -94,7 +96,20 @@ export interface DevicePacket {
   }>;
 }
 
+export interface DiagnosticRun {
+  installation_id: string;
+  run_id: string;
+  started_at: string;
+  latest_at: string;
+}
+
 export interface DeviceDiagnostic {
+  installation_id: string | null;
+  run_id: string | null;
+  screen: string | null;
+  reason: string | null;
+  peripheral_id: string | null;
+  sequence: number | null;
   id: number | string;
   user_id: string;
   user_name: string | null;
@@ -143,12 +158,14 @@ async function readGroupData<T>(
   return payload;
 }
 
-function historyQuery({ from, to, before, userId, deviceId, category }: DeviceHistoryQuery) {
+function historyQuery({ from, to, before, userId, deviceId, category, installationId, runId }: DeviceHistoryQuery) {
   const query = new URLSearchParams({ from, to, limit: '50' });
   if (before) query.set('before', before);
   if (userId) query.set('userId', userId);
   if (deviceId) query.set('deviceId', deviceId);
   if (category) query.set('category', category);
+  if (installationId) query.set('installationId', installationId);
+  if (runId) query.set('runId', runId);
   return query;
 }
 
@@ -210,6 +227,12 @@ export const groupSyncService = {
   listDevicePackets(groupId: string, deviceId: string, token: string, query: DeviceHistoryQuery, signal?: AbortSignal) {
     return readGroupData<DeviceHistoryPage<DevicePacket>>(
       groupId, `devices/${encodeURIComponent(deviceId)}/packets`, token, signal, historyQuery(query),
+    );
+  },
+
+  listDiagnosticRuns(groupId: string, token: string, range: { from: string; to: string }, signal?: AbortSignal) {
+    return readGroupData<{ items: DiagnosticRun[] }>(
+      groupId, 'device-diagnostics/runs', token, signal, new URLSearchParams(range),
     );
   },
 

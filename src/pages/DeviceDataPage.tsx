@@ -129,17 +129,19 @@ function CursorHistory<T>({ fetchPage, render }: {
   );
 }
 
-function DiagnosticHistory({ groupId, token, range, userId, deviceId, category }: Scope & {
+function DiagnosticHistory({ groupId, token, range, userId, deviceId, category, installationId, runId }: Scope & {
   range: Range;
   userId?: string;
   deviceId?: string;
   category?: 'operations' | 'errors';
+  installationId?: string;
+  runId?: string;
 }) {
   const { translate } = useLocale();
   const { from, to } = range;
   const fetchPage = useCallback((signal: AbortSignal, before?: string) =>
-    groupSyncService.listDeviceDiagnostics(groupId, token, { from, to, userId, deviceId, category, before }, signal),
-  [groupId, token, from, to, userId, deviceId, category]);
+    groupSyncService.listDeviceDiagnostics(groupId, token, { from, to, userId, deviceId, category, installationId, runId, before }, signal),
+  [groupId, token, from, to, userId, deviceId, category, installationId, runId]);
   return (
     <Card title={translate('诊断与操作记录', 'Diagnostic timeline')}>
       <CursorHistory<DeviceDiagnostic> fetchPage={fetchPage} render={(items, loading) => (
@@ -148,15 +150,19 @@ function DiagnosticHistory({ groupId, token, range, userId, deviceId, category }
           dataSource={items}
           loading={loading}
           pagination={false}
-          scroll={{ x: 820 }}
+          scroll={{ x: 1240 }}
           columns={[
             { title: translate('发生时间', 'Occurred'), dataIndex: 'occurred_at', render: formatTime },
             { title: translate('接收时间', 'Received'), dataIndex: 'received_at', render: formatTime },
             { title: translate('用户', 'User'), dataIndex: 'user_name', render: (name, row) => name || row.user_id },
-            { title: translate('设备', 'Device'), dataIndex: 'device_name', render: (name, row) => name || row.device_id || '—' },
+            { title: translate('安装实例', 'Installation'), dataIndex: 'installation_id', render: (value) => value ? <Typography.Text copyable={{ text: value }}>{value.slice(0, 8)}</Typography.Text> : '—' },
+            { title: translate('启动会话', 'App run'), dataIndex: 'run_id', render: (value) => value ? <Typography.Text copyable={{ text: value }}>{value.slice(0, 8)}</Typography.Text> : '—' },
+            { title: translate('页面', 'Screen'), dataIndex: 'screen', render: (value) => value || '—' },
+            { title: translate('蓝牙配件', 'Bluetooth accessory'), dataIndex: 'device_name', render: (name, row) => name || row.device_id || (row.peripheral_id ? <Typography.Text copyable={{ text: row.peripheral_id }}>{row.peripheral_id.slice(0, 8)}</Typography.Text> : '—') },
             { title: translate('事件', 'Event'), dataIndex: 'event', render: (event) => event === 'app_operation' ? translate('用户操作', 'User operation') : event === 'app_exception' ? translate('程序异常', 'App exception') : event },
             { title: translate('状态', 'Status'), dataIndex: 'status', render: (status: string) => <Tag color={status === 'error' ? 'red' : undefined}>{status}</Tag> },
             { title: translate('操作或错误码', 'Action or error code'), dataIndex: 'code', render: (value) => value || '—' },
+            { title: translate('失败原因', 'Failure reason'), dataIndex: 'reason', render: (value) => value || '—' },
             { title: translate('计数', 'Count'), dataIndex: 'count', render: (value) => value ?? '—' },
           ]}
         />
@@ -257,6 +263,8 @@ function GroupDeviceData({ groupId, token, userId }: Scope & { userId?: string }
   const [rawDeviceId, setRawDeviceId] = useState<string>();
   const [diagnosticUserId, setDiagnosticUserId] = useState<string>();
   const [diagnosticCategory, setDiagnosticCategory] = useState<'operations' | 'errors'>();
+  const [installationId, setInstallationId] = useState<string>();
+  const [runId, setRunId] = useState<string>();
   const [diagnosticDeviceId, setDiagnosticDeviceId] = useState<string>();
   const load = useCallback((signal: AbortSignal) => Promise.all([
     groupSyncService.getGroupSnapshot(groupId, token, signal),
@@ -290,6 +298,12 @@ function GroupDeviceData({ groupId, token, userId }: Scope & { userId?: string }
       : to.subtract(days * 24, 'hour');
     return { days, from: from.toISOString(), to: to.toISOString(), offset: to.utcOffset() };
   }, [days, end, refreshedAt]);
+  const loadRuns = useCallback((signal: AbortSignal) => canManage && tab === 'diagnostics'
+    ? groupSyncService.listDiagnosticRuns(groupId, token, { from: range.from, to: range.to }, signal)
+    : Promise.resolve({ items: [] }), [canManage, tab, groupId, token, range.from, range.to]);
+  const { data: runData, error: runError } = useRead(loadRuns);
+  const runs = runData?.items ?? [];
+  const installations = [...new Set(runs.map((run) => run.installation_id))];
   const resetPagination = [range.from, range.to, refreshedAt.valueOf()].join('|');
 
   if (loading) return <Spin />;
@@ -329,6 +343,22 @@ function GroupDeviceData({ groupId, token, userId }: Scope & { userId?: string }
             />
           </>}
           {tab === 'diagnostics' && <>
+            <Select
+              aria-label={translate('App 安装实例', 'App installation')}
+              placeholder={translate('所有 App 安装实例', 'All app installations')}
+              allowClear value={installationId}
+              onChange={(id) => { setInstallationId(id); setRunId(undefined); }}
+              options={installations.map((id) => ({ value: id, label: id.slice(0, 8) }))}
+              style={{ minWidth: 190 }}
+            />
+            <Select
+              aria-label={translate('启动会话', 'App run')}
+              placeholder={translate('所有启动会话', 'All app runs')}
+              allowClear value={runId} onChange={setRunId}
+              options={runs.filter((run) => !installationId || run.installation_id === installationId)
+                .map((run) => ({ value: run.run_id, label: `${formatTime(run.started_at)} · ${run.run_id.slice(0, 8)}` }))}
+              style={{ minWidth: 230 }}
+            />
             <Select
               aria-label={translate('记录类型', 'Event type')}
               placeholder={translate('所有记录', 'All events')}
@@ -393,9 +423,10 @@ function GroupDeviceData({ groupId, token, userId }: Scope & { userId?: string }
       {tab === 'trends' && (subject
         ? <MetricTrends key={resetPagination} groupId={groupId} token={token} range={range} subject={subject} deviceId={trendDeviceId} />
         : <Empty description={translate('当前家庭暂无已授权的成员或宠物数据', 'No authorized member or pet data in this family')} />)}
+      {tab === 'diagnostics' && runError && <ReadError error={runError} />}
       {tab === 'diagnostics' && <DiagnosticHistory
-        key={`${resetPagination}|${diagnosticUserId}|${diagnosticDeviceId}|${diagnosticCategory}`}
-        groupId={groupId} token={token} range={range} userId={diagnosticUserId} deviceId={diagnosticDeviceId} category={diagnosticCategory}
+        key={`${resetPagination}|${diagnosticUserId}|${diagnosticDeviceId}|${diagnosticCategory}|${installationId}|${runId}`}
+        groupId={groupId} token={token} range={range} userId={diagnosticUserId} deviceId={diagnosticDeviceId} category={diagnosticCategory} installationId={installationId} runId={runId}
       />}
       {tab === 'raw' && (rawDeviceId
         ? <PacketHistory key={`${resetPagination}|${rawDeviceId}`} groupId={groupId} token={token} range={range} deviceId={rawDeviceId} />
