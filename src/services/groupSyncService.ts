@@ -53,10 +53,101 @@ export interface SyncRun {
   finished_at?: string | null;
 }
 
+export interface GroupDevice {
+  id: string;
+  name: string;
+  serial: string;
+  subject_type: 'member' | 'pet';
+  subject_id: string;
+  removed_at: string | null;
+}
+
+interface DeviceHistoryQuery {
+  from: string;
+  to: string;
+  before?: string;
+  userId?: string;
+  deviceId?: string;
+}
+
+export interface DeviceHistoryPage<T> {
+  items: T[];
+  nextBefore: string | null;
+}
+
+export interface DevicePacket {
+  id: number | string;
+  packet_key: string;
+  recorded_at: string;
+  received_at: string;
+  payload_hex: string;
+  parse_status: 'parsed' | 'unparsed' | 'legacy_unprocessed';
+  packet_type: string | null;
+  parsed_data: Record<string, unknown> | null;
+  parse_error: string | null;
+  projected_metrics?: Array<{
+    metric_type: string;
+    value: number;
+    unit: string;
+    recorded_at: string;
+  }>;
+}
+
+export interface DeviceDiagnostic {
+  id: number | string;
+  user_id: string;
+  user_name: string | null;
+  device_id: string | null;
+  device_name: string | null;
+  occurred_at: string;
+  received_at: string;
+  event: string;
+  status: string;
+  code: string | null;
+  count: number | null;
+}
+
+export interface WellbeingMetric {
+  unit: string;
+  value: number | null;
+  points: Array<{ time: string; value: number | null; count: number }>;
+}
+
+export interface GroupWellbeing {
+  updatedAt: string | null;
+  metrics: Record<string, WellbeingMetric | undefined>;
+}
+
 function apiUrl(path: string) {
   const baseUrl = import.meta.env.VITE_PETRAQ_ADMIN_API_BASE_URL?.trim();
   if (!baseUrl) throw new Error('PetraQ Backend 尚未配置');
   return new URL(path, baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString();
+}
+
+async function readGroupData<T>(
+  groupId: string,
+  path: string,
+  token: string,
+  signal?: AbortSignal,
+  query?: URLSearchParams,
+): Promise<T> {
+  const suffix = query ? `?${query.toString()}` : '';
+  const response = await fetch(apiUrl(`api/groups/${encodeURIComponent(groupId)}/${path}${suffix}`), {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+    signal,
+  });
+  const payload = await response.json().catch(() => null) as (T & { error?: string }) | null;
+  if (!response.ok || !payload) throw new Error(payload?.error || `HTTP ${response.status}`);
+  return payload;
+}
+
+function historyQuery({ from, to, before, userId, deviceId }: DeviceHistoryQuery) {
+  const query = new URLSearchParams({ from, to, limit: '50' });
+  if (before) query.set('before', before);
+  if (userId) query.set('userId', userId);
+  if (deviceId) query.set('deviceId', deviceId);
+  return query;
 }
 
 export const groupSyncService = {
@@ -72,8 +163,8 @@ export const groupSyncService = {
     return payload;
   },
 
-  async listGroups(token: string) {
-    const response = await fetch(apiUrl('api/groups'), { headers: { Authorization: `Bearer ${token}` } });
+  async listGroups(token: string, signal?: AbortSignal) {
+    const response = await fetch(apiUrl('api/groups'), { headers: { Authorization: `Bearer ${token}` }, signal });
     const payload = await response.json() as { items?: import('./petraqAdminData').Family[]; error?: string };
     if (!response.ok) throw new Error(payload.error || '读取 Group 失败');
     return payload.items ?? [];
@@ -97,11 +188,33 @@ export const groupSyncService = {
     return payload.items ?? [];
   },
 
-  async getGroupSnapshot(groupId: string, token: string): Promise<GroupSnapshot> {
-    const response = await fetch(apiUrl(`api/mobile/snapshot?groupId=${encodeURIComponent(groupId)}`), { headers: { Authorization: `Bearer ${token}` } });
+  async getGroupSnapshot(groupId: string, token: string, signal?: AbortSignal): Promise<GroupSnapshot> {
+    const response = await fetch(apiUrl(`api/mobile/snapshot?groupId=${encodeURIComponent(groupId)}`), { headers: { Authorization: `Bearer ${token}` }, signal });
     const payload = await response.json() as GroupSnapshot & { error?: string };
     if (!response.ok) throw new Error(payload.error || '读取 Group 详情失败');
     return { members: payload.members ?? [], pets: payload.pets ?? [] };
+  },
+
+  getGroupDevices(groupId: string, token: string, signal?: AbortSignal) {
+    return readGroupData<{ devices: GroupDevice[]; canManage: boolean }>(
+      groupId, 'devices', token, signal, new URLSearchParams({ includeRemoved: 'true' }),
+    );
+  },
+
+  getWellbeing(groupId: string, token: string, query: URLSearchParams, signal?: AbortSignal) {
+    return readGroupData<GroupWellbeing>(groupId, 'wellbeing', token, signal, query);
+  },
+
+  listDevicePackets(groupId: string, deviceId: string, token: string, query: DeviceHistoryQuery, signal?: AbortSignal) {
+    return readGroupData<DeviceHistoryPage<DevicePacket>>(
+      groupId, `devices/${encodeURIComponent(deviceId)}/packets`, token, signal, historyQuery(query),
+    );
+  },
+
+  listDeviceDiagnostics(groupId: string, token: string, query: DeviceHistoryQuery, signal?: AbortSignal) {
+    return readGroupData<DeviceHistoryPage<DeviceDiagnostic>>(
+      groupId, 'device-diagnostics', token, signal, historyQuery(query),
+    );
   },
 
   async listInvitations(groupId: string, token: string): Promise<GroupInvitation[]> {

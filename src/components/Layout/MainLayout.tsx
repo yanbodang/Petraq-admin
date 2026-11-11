@@ -9,6 +9,7 @@ import {
   TeamOutlined,
   SettingOutlined,
   MobileOutlined,
+  LineChartOutlined,
   MedicineBoxOutlined,
   SafetyCertificateOutlined,
   HomeOutlined,
@@ -61,6 +62,11 @@ export default function MainLayout() {
           key: '/health',
           icon: <HeartOutlined />,
           label: t('menu.health'),
+        },
+        {
+          key: '/device-data',
+          icon: <LineChartOutlined />,
+          label: t('menu.deviceData'),
         },
         {
           key: '/invitations',
