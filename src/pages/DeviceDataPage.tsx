@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Col, DatePicker, Empty, Row, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Descriptions, Drawer, Empty, Row, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs, { Dayjs } from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -138,6 +138,66 @@ function DiagnosticHistory({ groupId, token, range, userId, deviceId, category, 
   runId?: string;
 }) {
   const { translate } = useLocale();
+  const [selected, setSelected] = useState<DeviceDiagnostic>();
+  const pageLabels: Record<string, [string, string]> = {
+    HomeScreen: ['首页', 'Home'],
+    HomeMembersScreen: ['家庭成员', 'Family members'],
+    InsightsScreen: ['洞察', 'Insights'],
+    RecordsScreen: ['档案', 'Records'],
+    SettingsScreen: ['设置', 'Settings'],
+    AccountSettingsScreen: ['账户与 Apple Health', 'Account and Apple Health'],
+    BluetoothDiagnosticsScreen: ['蓝牙与诊断', 'Bluetooth and diagnostics'],
+    DeviceManagementScreen: ['设备管理', 'Device management'],
+    DeviceSyncScreen: ['连接并同步', 'Connect and sync'],
+    PairDeviceScreen: ['绑定设备', 'Bind device'],
+    HealthSetupScreen: ['Apple Health 授权', 'Apple Health authorization'],
+    HomeNotificationsScreen: ['通知', 'Notifications'],
+    WellbeingScreen: ['健康趋势', 'Health trends'],
+    MedicalRecordsScreen: ['医疗档案', 'Medical records'],
+    PdfAttachmentScreen: ['PDF 附件', 'PDF attachment'],
+    ImageAttachmentScreen: ['图片附件', 'Image attachment'],
+    RecentChangesScreen: ['近期变化', 'Recent changes'],
+    PreferenceScreen_notifications: ['通知设置', 'Notification settings'],
+    PreferenceScreen_medical: ['医疗提醒设置', 'Medical reminder settings'],
+  };
+  const actionLabels: Record<string, [string, string]> = {
+    app_launch: ['启动 App', 'Launch app'],
+    screen_open: ['打开页面', 'Open screen'],
+    screen_back: ['返回上一页', 'Go back'],
+    ui_tap: ['页面触碰（控件未标记）', 'Page touch (unlabeled control)'],
+    tap_scan_nearby: ['点击扫描附近蓝牙', 'Tap scan nearby Bluetooth'],
+    tap_connect_sync: ['点击连接并同步', 'Tap connect and sync'],
+    tap_rename_device: ['点击重命名设备', 'Tap rename device'],
+    tap_bind_device: ['点击绑定新设备', 'Tap bind new device'],
+    tap_confirm_bind: ['确认绑定设备', 'Confirm binding'],
+    tap_choose_binding: ['选择家庭绑定记录', 'Choose family binding'],
+    tap_unbind_device: ['点击解绑设备', 'Tap unbind device'],
+    tap_confirm_unbind: ['确认解绑设备', 'Confirm unbinding'],
+    tap_disconnect: ['点击断开连接', 'Tap disconnect'],
+    tap_retry_upload: ['点击重试上传', 'Tap retry upload'],
+    tap_sync_apple_health: ['点击立即同步 Apple Health', 'Tap sync Apple Health now'],
+    tap_sign_out: ['点击退出登录', 'Tap sign out'],
+    ble_scan_start: ['开始蓝牙扫描', 'Start Bluetooth scan'],
+    ble_scan: ['蓝牙扫描结果', 'Bluetooth scan result'],
+    ble_select: ['选择蓝牙配件', 'Select Bluetooth accessory'],
+    ble_connect_start: ['尝试蓝牙连接', 'Attempt Bluetooth connection'],
+    ble_connect: ['蓝牙连接结果', 'Bluetooth connection result'],
+    tab_settings: ['切换到设置', 'Switch to settings'],
+  };
+  const screenLabel = (screen: string | null) => {
+    const label = screen ? pageLabels[screen] : undefined;
+    return label ? translate(...label) : screen || '—';
+  };
+  const actionLabel = (row: DeviceDiagnostic) => {
+    if (row.code?.startsWith('tap_open_')) {
+      return `${translate('点击打开', 'Tap to open')} ${screenLabel(row.code.slice(9))}`;
+    }
+    const label = row.code ? actionLabels[row.code] : undefined;
+    if (label && (row.code === 'screen_open' || row.code === 'ui_tap')) {
+      return row.screen ? `${translate(...label)} · ${screenLabel(row.screen)}` : translate(...label);
+    }
+    return label ? translate(...label) : row.code || row.event;
+  };
   const { from, to } = range;
   const fetchPage = useCallback((signal: AbortSignal, before?: string) =>
     groupSyncService.listDeviceDiagnostics(groupId, token, { from, to, userId, deviceId, category, installationId, runId, before }, signal),
@@ -151,6 +211,7 @@ function DiagnosticHistory({ groupId, token, range, userId, deviceId, category, 
           loading={loading}
           pagination={false}
           scroll={{ x: 1510 }}
+          onRow={(row) => ({ onClick: () => setSelected(row), style: { cursor: 'pointer' } })}
           columns={[
             { title: translate('发生时间', 'Occurred'), dataIndex: 'occurred_at', render: formatTime },
             { title: translate('接收时间', 'Received'), dataIndex: 'received_at', render: formatTime },
@@ -169,16 +230,44 @@ function DiagnosticHistory({ groupId, token, range, userId, deviceId, category, 
                 : '—',
             },
             { title: translate('上报 IP', 'Upload IP'), dataIndex: 'client_ip', render: (value) => value || '—' },
-            { title: translate('页面', 'Screen'), dataIndex: 'screen', render: (value) => value || '—' },
+            { title: translate('页面', 'Screen'), dataIndex: 'screen', render: screenLabel },
             { title: translate('蓝牙配件', 'Bluetooth accessory'), dataIndex: 'device_name', render: (name, row) => name || row.device_id || (row.peripheral_id ? <Typography.Text copyable={{ text: row.peripheral_id }}>{row.peripheral_id.slice(0, 8)}</Typography.Text> : '—') },
             { title: translate('事件', 'Event'), dataIndex: 'event', render: (event) => event === 'app_operation' ? translate('用户操作', 'User operation') : event === 'app_exception' ? translate('程序异常', 'App exception') : event },
             { title: translate('状态', 'Status'), dataIndex: 'status', render: (status: string) => <Tag color={status === 'error' ? 'red' : undefined}>{status}</Tag> },
-            { title: translate('操作或错误码', 'Action or error code'), dataIndex: 'code', render: (value) => value || '—' },
+            { title: translate('操作', 'Action'), key: 'action', render: (_, row) =>
+              <Button type="link" onClick={() => setSelected(row)}>{actionLabel(row)}</Button> },
             { title: translate('失败原因', 'Failure reason'), dataIndex: 'reason', render: (value) => value || '—' },
             { title: translate('计数', 'Count'), dataIndex: 'count', render: (value) => value ?? '—' },
           ]}
         />
       )} />
+      <Drawer
+        title={selected ? actionLabel(selected) : translate('诊断记录详情', 'Diagnostic event details')}
+        open={Boolean(selected)}
+        onClose={() => setSelected(undefined)}
+        width={480}
+      >
+        {selected && <Descriptions column={1} size="small" bordered>
+          <Descriptions.Item label={translate('页面', 'Screen')}>{screenLabel(selected.screen)}</Descriptions.Item>
+          <Descriptions.Item label={translate('发生时间', 'Occurred')}>{formatTime(selected.occurred_at)}</Descriptions.Item>
+          <Descriptions.Item label={translate('服务器接收时间', 'Received')}>{formatTime(selected.received_at)}</Descriptions.Item>
+          <Descriptions.Item label={translate('用户', 'User')}>{selected.user_name || selected.user_id}</Descriptions.Item>
+          <Descriptions.Item label={translate('事件及操作码', 'Event and action code')}>{selected.event} · {selected.code || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('结果', 'Result')}>{selected.status}</Descriptions.Item>
+          <Descriptions.Item label={translate('失败原因', 'Failure reason')}>{selected.reason || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('结果数量', 'Result count')}>{selected.count ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('手机型号', 'Phone model')}>{[selected.client_context?.deviceType, selected.client_context?.deviceModel].filter(Boolean).join(' · ') || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('系统版本', 'OS version')}>{[selected.client_context?.osName, selected.client_context?.osVersion].filter(Boolean).join(' ') || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('App 版本 / 构建号', 'App version / build')}>{[selected.client_context?.appVersion, selected.client_context?.appBuild].filter(Boolean).join(' / ') || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('上报 IP', 'Upload IP')}>{selected.client_ip || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('安装实例', 'Installation')}>{selected.installation_id ? <Typography.Text copyable>{selected.installation_id}</Typography.Text> : '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('启动会话', 'App run')}>{selected.run_id ? <Typography.Text copyable>{selected.run_id}</Typography.Text> : '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('会话序号', 'Run sequence')}>{selected.sequence ?? '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('已绑定配件', 'Bound accessory')}>{selected.device_name || selected.device_id || '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('蓝牙配件标识', 'Bluetooth accessory ID')}>{selected.peripheral_id ? <Typography.Text copyable>{selected.peripheral_id}</Typography.Text> : '—'}</Descriptions.Item>
+          <Descriptions.Item label={translate('记录 ID', 'Event ID')}><Typography.Text copyable>{selected.id}</Typography.Text></Descriptions.Item>
+        </Descriptions>}
+      </Drawer>
     </Card>
   );
 }
